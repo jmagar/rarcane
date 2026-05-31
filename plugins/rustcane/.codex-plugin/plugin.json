@@ -1,36 +1,36 @@
 {
   "name": "rustcane-mcp",
-  "description": "TEMPLATE: Replace with a one-line description of your MCP server for the Codex plugin registry. E.g.: 'Gotify notification server MCP bridge for Codex.'",
-  "homepage": "https://github.com/jmagar/rustcane-mcp",
-  "repository": "https://github.com/jmagar/rustcane-mcp",
+  "description": "Rust MCP server for Arcane Docker management — manage containers, images, networks, volumes, compose projects, and more.",
+  "homepage": "https://github.com/jmagar/rustcane",
+  "repository": "https://github.com/jmagar/rustcane",
   "license": "MIT",
   "keywords": [
     "rustcane",
-    "mcp",
-    "template",
-    "homelab"
+    "arcane",
+    "docker",
+    "containers",
+    "homelab",
+    "mcp"
   ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Rustcane MCP",
-    "shortDescription": "TEMPLATE: Short tagline shown in Codex plugin listings (50 chars max). E.g.: 'Query and manage Arcane'.",
-    "longDescription": "TEMPLATE: Full paragraph describing what this MCP server does, what data it exposes, what operations it supports, and what permissions it needs. This appears on the plugin detail page in Codex.",
+    "shortDescription": "Manage Docker via the Arcane API",
+    "longDescription": "MCP server that bridges Codex to the Arcane Docker management API. Exposes a single action-dispatched 'arcane' tool covering environments, compose projects, containers, images, networks, volumes, registries, GitOps repos, image-update checks, vulnerability scanning, and system operations. Supports both read and write operations across Docker environments; destructive subactions (delete, prune, stop, destroy) require explicit confirmation.",
     "developerName": "Jacob Magar",
     "category": "Infrastructure",
     "capabilities": [
       "Read",
       "Write"
     ],
-    "websiteURL": "https://github.com/jmagar/rustcane-mcp",
+    "websiteURL": "https://github.com/jmagar/rustcane",
     "defaultPrompt": [
-      "TEMPLATE: Replace with 3 natural-language prompts that demonstrate your server's most useful actions.",
-      "Check Arcane status.",
-      "Show all available Arcane actions."
+      "List all running Docker containers.",
+      "Show me the Arcane and rustcane configuration status.",
+      "Check for available image updates across my Docker environment."
     ],
-    "brandColor": "#6366F1",
-    "composerIcon": "./assets/icon.png",
-    "logo": "./assets/logo.svg"
+    "brandColor": "#6366F1"
   },
   "author": {
     "name": "Jacob Magar",

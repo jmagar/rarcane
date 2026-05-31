@@ -1,10 +1,10 @@
 {
   "name": "rustcane-mcp",
-  "description": "TEMPLATE: Replace with a one-line description of your MCP server. E.g.: 'Gotify notification server MCP bridge for Gemini CLI.'",
+  "description": "Rust MCP server for Arcane Docker management — manage containers, images, networks, volumes, and compose projects.",
   "author": "Jacob Magar",
-  "repository": "https://github.com/jmagar/rustcane-mcp",
+  "repository": "https://github.com/jmagar/rustcane",
   "license": "MIT",
-  "keywords": ["rustcane", "mcp", "template", "homelab"],
+  "keywords": ["rustcane", "arcane", "docker", "containers", "homelab", "mcp"],
   "contextFileName": "GEMINI.md",
   "mcpServers": {
     "rustcane": {
@@ -31,13 +31,13 @@
       "sensitive": true
     },
     {
-      "name": "arcane_api_url",
-      "description": "TEMPLATE: Replace 'arcane_api_url' with your service's credential field name. Your upstream service API endpoint — the URL this MCP server calls to fetch data. Maps to RUSTCANE_API_URL env var.",
+      "name": "rustcane_api_url",
+      "description": "Base URL of the upstream Arcane API this server manages Docker through, e.g. https://arcane.example.com. Maps to the RUSTCANE_API_URL env var.",
       "required": false
     },
     {
-      "name": "arcane_api_key",
-      "description": "TEMPLATE: Replace 'arcane_api_key' with your service's credential field name. API key or bearer token for your upstream service. Maps to RUSTCANE_API_KEY env var.",
+      "name": "rustcane_api_key",
+      "description": "API key or bearer token for authenticating to the upstream Arcane API. Maps to the RUSTCANE_API_KEY env var.",
       "required": false,
       "sensitive": true
     }

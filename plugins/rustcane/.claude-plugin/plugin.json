@@ -1,15 +1,18 @@
 {
   "name": "rustcane",
-  "description": "TEMPLATE: Replace 'rustcane'/'Rustcane'/'EXAMPLE' with your service name throughout this file and throughout the entire plugin directory. This plugin connects Claude Code to the Rustcane MCP server \u2014 a Rust-based MCP server built from rmcp-template.",
+  "description": "Rust MCP server for Arcane Docker management — manage containers, images, networks, volumes, compose projects, GitOps, and vulnerability scanning across Docker environments.",
   "author": {
-    "name": "your-username"
+    "name": "jmagar"
   },
-  "repository": "https://github.com/jmagar/rustcane-mcp",
+  "repository": "https://github.com/jmagar/rustcane",
   "license": "MIT",
   "keywords": [
     "rustcane",
-    "mcp",
-    "template"
+    "arcane",
+    "docker",
+    "containers",
+    "homelab",
+    "mcp"
   ],
   "mcpServers": "./.mcp.json",
   "hooks": "./hooks/hooks.json",
@@ -21,14 +24,14 @@
     "use_docker": {
       "type": "boolean",
       "title": "Deploy with Docker",
-      "description": "TEMPLATE: Keep this \u2014 both Docker and systemd deployment modes are useful defaults. True: run via docker compose (containerized, easier to upgrade, auto-restart). False: run as a systemd user service (lighter weight, no Docker dependency, logs to journald). Both produce identical behavior \u2014 pick based on your host conventions.",
+      "description": "Deployment method. True: run via docker compose (containerized, easier to upgrade, auto-restart). False: run as a systemd user service (lighter weight, no Docker dependency, logs to journald). Both produce identical behavior — pick based on your host conventions.",
       "required": true,
       "default": false
     },
     "server_url": {
       "type": "string",
       "title": "Server URL",
-      "description": "Base URL of the MCP HTTP server this Claude Code session connects to. If running locally: keep http://localhost:40060. If connecting to a remote server: set to http://hostname:40060 or https://rustcane.yourdomain.com. Do NOT include a trailing /mcp \u2014 the plugin appends it automatically.",
+      "description": "Base URL of the MCP HTTP server this Claude Code session connects to. If running locally: keep http://localhost:40060. If connecting to a remote server: set to http://hostname:40060 or https://rustcane.yourdomain.com. Do NOT include a trailing /mcp — the plugin appends it automatically.",
       "required": true,
       "default": "http://localhost:40060"
     },
@@ -42,7 +45,7 @@
     "no_auth": {
       "type": "boolean",
       "title": "Disable service auth",
-      "description": "Run the MCP server without authentication. ONLY safe when the server is bound to 127.x (loopback). Use this for local development only \u2014 never expose an unauthed MCP server on a network interface.",
+      "description": "Run the MCP server without authentication. ONLY safe when the server is bound to 127.x (loopback). Use this for local development only — never expose an unauthed MCP server on a network interface.",
       "required": true,
       "default": false
     },
@@ -79,17 +82,23 @@
       "description": "Bootstrap allowed Google account for OAuth mode. The server refuses to start OAuth mode without at least one allowlisted email address. Server mode only.",
       "default": ""
     },
-    "arcane_api_url": {
+    "data_dir": {
+      "type": "directory",
+      "title": "Data directory",
+      "description": "Directory for runtime state (OAuth DB, JWT key). Defaults to the plugin persistent data directory.",
+      "default": "${CLAUDE_PLUGIN_DATA}"
+    },
+    "rustcane_api_url": {
       "type": "string",
-      "title": "Service API URL",
-      "description": "TEMPLATE: Replace 'arcane_api_url' with your service's credential field name (e.g. 'myservice_api_url'). Your service's API endpoint \u2014 the URL this MCP server calls to fetch data. Rustcane: https://api.rustcane.com/v1. Maps to RUSTCANE_API_URL env var.",
+      "title": "Arcane API URL",
+      "description": "Base URL of the upstream Arcane API this server manages Docker through, e.g. https://arcane.example.com. Maps to the RUSTCANE_API_URL env var.",
       "sensitive": true,
       "default": ""
     },
-    "arcane_api_key": {
+    "rustcane_api_key": {
       "type": "string",
-      "title": "Service API key",
-      "description": "TEMPLATE: Replace 'arcane_api_key' with your service's credential field name (e.g. 'myservice_api_key'). API key or bearer token for authenticating to your upstream service. Maps to RUSTCANE_API_KEY env var. Never stored in config.toml.",
+      "title": "Arcane API key",
+      "description": "API key or bearer token for authenticating to the upstream Arcane API. Generate one in the Arcane admin panel. Maps to the RUSTCANE_API_KEY env var. Never stored in config.toml.",
       "sensitive": true,
       "default": ""
     }
