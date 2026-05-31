@@ -21,13 +21,6 @@
     "monitors": "./monitors/monitors.json"
   },
   "userConfig": {
-    "use_docker": {
-      "type": "boolean",
-      "title": "Deploy with Docker",
-      "description": "Deployment method. True: run via docker compose (containerized, easier to upgrade, auto-restart). False: run as a systemd user service (lighter weight, no Docker dependency, logs to journald). Both produce identical behavior — pick based on your host conventions.",
-      "required": true,
-      "default": false
-    },
     "server_url": {
       "type": "string",
       "title": "Server URL",
@@ -81,12 +74,6 @@
       "title": "OAuth admin email",
       "description": "Bootstrap allowed Google account for OAuth mode. The server refuses to start OAuth mode without at least one allowlisted email address. Server mode only.",
       "default": ""
-    },
-    "data_dir": {
-      "type": "directory",
-      "title": "Data directory",
-      "description": "Directory for runtime state (OAuth DB, JWT key). Defaults to the plugin persistent data directory.",
-      "default": "${CLAUDE_PLUGIN_DATA}"
     },
     "rustcane_api_url": {
       "type": "string",
