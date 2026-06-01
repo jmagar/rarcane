@@ -1,36 +1,34 @@
 #!/usr/bin/env bash
 # =============================================================================
-# test-mcp.sh — Integration smoke-test for the Arcane MCP server
+# test-mcp.sh — Integration smoke-test for the rustcane (Arcane) MCP server
 #
-# TEMPLATE: Replace all occurrences of "rustcane"/"Arcane"/"EXAMPLE" with your
-#           service name when adapting this for a real service.
+# rustcane wraps the Arcane Docker-management API and exposes ONE MCP tool named
+# `arcane`, dispatched by `action` (+ optional `subaction`/`envId`/`id`/`params`).
 #
 # PHILOSOPHY — what makes a good integration test:
 #   A test that only checks "did it return JSON?" is NOT a good test.
-#   A test that checks "did greet with name='Alice' return a string containing
-#   'Alice'?" IS a good test — it proves semantic correctness, not just liveness.
+#   A test that checks "did status() return status='ok' and upstream='arcane'?"
+#   IS a good test — it proves semantic correctness, not just liveness.
 #
-#   This script demonstrates the pattern with four checks:
-#     greet(name="Alice")    → response MUST contain "Alice" in the greeting string
-#     echo(message="ping")   → response MUST echo back the exact string "ping"
-#     status()               → response MUST have a "status" key
-#     help()                 → response MUST have a "help" key with non-empty content
-#     schema resource        → MUST be valid JSON schema with name="rustcane" and inputSchema
+#   This script smoke-tests only READ-ONLY / environment-independent actions.
+#   It NEVER calls destructive actions (anything that creates, deletes, prunes,
+#   starts, stops, restarts, recreates, or pushes Docker state). Those are marked
+#   `destructive` in src/actions.rs and require params.confirm=true.
 #
-#   MCP elicitation actions (`elicit_name`, `scaffold_intent`) require a client
-#   that can render elicitation/create. mcporter HTTP smoke tests do not exercise
-#   that UI flow; fallback outcomes are covered by Rust tests below the live
-#   transport harness.
+#   The checks exercised here run without a live Arcane backend:
+#     status()         → response MUST have status="ok", server="rustcane",
+#                        upstream="arcane" (handled locally before any HTTP call)
+#     help()           → response MUST have tool="arcane" and list known actions
+#                        (e.g. "container") in its action summary
+#     schema resource  → MUST be valid JSON schema with name="arcane" and inputSchema
 #
-#   TEMPLATE: Adapt these checks to your service's actual response shapes.
-#             Replace rustcane-specific validation with your API's semantics.
-#             Add checks that prove your API data is real, e.g.:
-#               - For a Unraid MCP: verify hostname matches your server
-#               - For a metrics MCP: verify timestamps are recent (within 5m)
-#               - For a database MCP: verify row counts are > 0
+#   NOTE: read-only data actions such as `environment` subaction=list hit a real
+#   Arcane backend (GET /environments) and will fail without a configured Arcane
+#   environment, so they are intentionally NOT asserted here. Add them only as
+#   tolerant/skipped cases when a live backend is available.
 #
 # Server is assumed to be running as HTTP on localhost:40060 (the `just dev` port).
-# Credentials are sourced from ~/.claude-homelab/.env OR environment variables:
+# Credentials are sourced from ~/.rustcane/.env OR environment variables:
 #   RUSTCANE_MCP_HOST  (default: localhost)
 #   RUSTCANE_MCP_PORT  (default: 40060)
 #   RUSTCANE_MCP_TOKEN (optional; omit for no-auth dev mode)
@@ -48,8 +46,8 @@
 #   1 — one or more tests failed
 #   2 — prerequisite check failed (mcporter not found, server unreachable)
 #
-# TEMPLATE: To add more actions, copy the pattern from suite_core below:
-#   run_test_semantic "label" "tool" '{"action":"your_action","arg":"val"}' \
+# To add more actions, copy the pattern from suite_core below:
+#   run_test_semantic "label" "arcane" '{"action":"your_action","subaction":"..."}' \
 #     "response_key" "expected_substring_or_exact_value" "exact"
 # =============================================================================
 
@@ -62,9 +60,8 @@ readonly SCRIPT_NAME="$(basename -- "${BASH_SOURCE[0]}")"
 readonly TS_START="$(date +%s%N)"
 readonly LOG_FILE="${TMPDIR:-/tmp}/${SCRIPT_NAME%.sh}.$(date +%Y%m%d-%H%M%S).log"
 
-# TEMPLATE: Change this path if your credentials live elsewhere.
-#           syslog-mcp uses ~/.claude-homelab/.env; adapt to your convention.
-readonly ENV_FILE="${HOME}/.claude-homelab/.env"
+# rustcane credentials live in ~/.rustcane/.env (SERVICE_HOME_DIRNAME=.rustcane).
+readonly ENV_FILE="${HOME}/.rustcane/.env"
 
 # ── Colour support ────────────────────────────────────────────────────────────
 if [[ -t 1 ]]; then
@@ -126,14 +123,12 @@ load_env() {
     log_warn "${ENV_FILE} not found — using environment variables"
   fi
 
-  # TEMPLATE: Replace RUSTCANE_MCP_HOST/PORT with your service's env var names.
   local host="${RUSTCANE_MCP_HOST:-localhost}"
   # Remap bind address 0.0.0.0 → localhost for outbound connections
   [[ "${host}" == "0.0.0.0" ]] && host="localhost"
   local port="${RUSTCANE_MCP_PORT:-40060}"
   MCP_URL="http://${host}:${port}/mcp"
 
-  # TEMPLATE: Replace RUSTCANE_MCP_TOKEN with your service's token env var.
   local token="${RUSTCANE_MCP_TOKEN:-}"
   MCPORTER_HEADER_ARGS=()
   if [[ -n "${token}" ]]; then
@@ -173,7 +168,6 @@ smoke_test_server() {
 
   if [[ "${health_status}" != "ok" ]]; then
     log_error "Health endpoint at ${base_url}/health did not return status=ok"
-    # TEMPLATE: Replace "rustcane" with your service name in the diagnostic messages.
     log_error "Is the rustcane-mcp server running?  just dev   or   just docker-up"
     log_error "Then retry:  ./tests/mcporter/test-mcp.sh"
     return 2
@@ -206,7 +200,7 @@ print(len(d.get('result', {}).get('tools', [])))
 
 # ── mcporter wrappers ────────────────────────────────────────────────────────
 # Makes a single MCP tool call via mcporter and returns the JSON output.
-# TEMPLATE: Replace "rustcane" tool name with your tool name.
+# The registered MCP tool name is `arcane` (see src/mcp/schemas.rs).
 mcporter_supports_headers() {
   mcporter call --help 2>/dev/null | grep -q -- '--header'
 }
@@ -383,12 +377,12 @@ except Exception as e:
 # This is the stronger test form — it validates that a specific field contains
 # an expected value, not just that the field exists.
 #
-# TEMPLATE: Use this for all checks where you can predict the response value.
-#           "does the response key exist?" is weak.
-#           "does the response value equal/contain X?" proves correctness.
+# Use this for all checks where you can predict the response value.
+#   "does the response key exist?" is weak.
+#   "does the response value equal/contain X?" proves correctness.
 #
 # Usage:
-#   run_test_semantic "label" "tool" '{"action":"..."}' \
+#   run_test_semantic "label" "arcane" '{"action":"..."}' \
 #     "response.key.path" "expected_value" "exact|contains"
 #
 # Modes:
@@ -476,14 +470,12 @@ _fail() {
 
 # =============================================================================
 # TEST SUITES
-# TEMPLATE: Rename these suites and adapt the test cases for your service.
 # =============================================================================
 
 # ── suite_auth ────────────────────────────────────────────────────────────────
 suite_auth() {
   printf '\n%b== auth enforcement ==%b\n' "${C_BOLD}" "${C_RESET}" | tee -a "${LOG_FILE}"
 
-  # TEMPLATE: Replace RUSTCANE_MCP_TOKEN with your token env var name.
   if [[ -z "${RUSTCANE_MCP_TOKEN:-}" ]]; then
     skip_test "auth: unauthenticated /mcp returns 401" "RUSTCANE_MCP_TOKEN unset"
     skip_test "auth: bad token returns 401"             "RUSTCANE_MCP_TOKEN unset"
@@ -512,81 +504,59 @@ suite_auth() {
 }
 
 # ── suite_core ────────────────────────────────────────────────────────────────
-# TEMPLATE: This is the main test suite. Each test here is a semantic check —
-#           it verifies that the response contains the RIGHT data, not just JSON.
+# Smoke-tests the real `arcane` tool. Each test is a semantic check — it verifies
+# the response contains the RIGHT data, not just that it is JSON.
 #
-# Key pattern: run_test_semantic validates a specific field value.
-# Key principle: test the contract, not the implementation.
+# SAFETY: only READ-ONLY, environment-independent actions are exercised here.
+#   `status` and `help` are handled locally by rustcane (src/app.rs dispatch)
+#   before any HTTP call to Arcane, so they need no live backend and touch no
+#   Docker state. Destructive actions (container.stop, image.prune, system.prune,
+#   project.down, …) are NEVER called.
 suite_core() {
-  printf '\n%b== rustcane tool — core actions ==%b\n' "${C_BOLD}" "${C_RESET}" | tee -a "${LOG_FILE}"
-
-  # ── greet ───────────────────────────────────────────────────────────────────
-  # TEMPLATE: Replace "rustcane" with your tool name, adapt the action and response.
-
-  # Basic greet — check the key exists
-  run_test "rustcane greet: returns greeting object" \
-    "rustcane" '{"action":"greet"}' "greeting"
-
-  # Semantic check: greeting with name="Alice" MUST contain "Alice" in the response
-  # TEMPLATE: This is the gold standard test format.
-  #           Input: action=greet, name="Alice"
-  #           Expected: response.greeting contains "Alice"
-  #           Why: proves the name parameter is actually used, not ignored
-  run_test_semantic "rustcane greet: name param reflected in response" \
-    "rustcane" '{"action":"greet","name":"Alice"}' \
-    "greeting" "Alice" "contains"
-
-  # The default target should be "World"
-  # TEMPLATE: Test documented defaults explicitly — they break silently otherwise.
-  run_test_semantic "rustcane greet: default target is World" \
-    "rustcane" '{"action":"greet"}' \
-    "target" "World" "exact"
-
-  # ── echo ────────────────────────────────────────────────────────────────────
-  # TEMPLATE: Echo-style operations are the simplest semantic test:
-  #           send value X, verify response contains exactly X.
-
-  # Basic echo key check
-  run_test "rustcane echo: returns echo object" \
-    "rustcane" '{"action":"echo","message":"ping"}' "echo"
-
-  # Semantic: the echoed value must match the input EXACTLY
-  # TEMPLATE: "contains" is too weak for echo — use "exact" to catch truncation bugs
-  run_test_semantic "rustcane echo: exact message round-trip" \
-    "rustcane" '{"action":"echo","message":"hello-mcporter-test-12345"}' \
-    "echo" "hello-mcporter-test-12345" "exact"
+  printf '\n%b== arcane tool — read-only actions ==%b\n' "${C_BOLD}" "${C_RESET}" | tee -a "${LOG_FILE}"
 
   # ── status ──────────────────────────────────────────────────────────────────
-  # TEMPLATE: Replace this with your service's status/health action.
-  #           Add checks for fields your service actually returns.
+  # Local status: reports server liveness without touching the Arcane upstream.
 
-  run_test "rustcane status: returns status field" \
-    "rustcane" '{"action":"status"}' "status"
+  # Basic status — the "status" key must be present.
+  run_test "arcane status: returns status field" \
+    "arcane" '{"action":"status"}' "status"
 
-  # The status value must be "ok" — not just present, but correct
-  # TEMPLATE: If your status action can return other values, adjust or skip this.
-  run_test_semantic "rustcane status: status value is ok" \
-    "rustcane" '{"action":"status"}' \
+  # The status value must be exactly "ok".
+  run_test_semantic "arcane status: status value is ok" \
+    "arcane" '{"action":"status"}' \
     "status" "ok" "exact"
 
-  # ── help ────────────────────────────────────────────────────────────────────
-  # TEMPLATE: The help action should always return non-empty documentation.
-  #           This test proves the help text is actually served, not a 500 error.
+  # status names this server "rustcane" and its upstream "arcane".
+  run_test_semantic "arcane status: server is rustcane" \
+    "arcane" '{"action":"status"}' \
+    "server" "rustcane" "exact"
 
-  run_test "rustcane help: returns help content" \
-    "rustcane" '{"action":"help"}' ""
+  run_test_semantic "arcane status: upstream is arcane" \
+    "arcane" '{"action":"status"}' \
+    "upstream" "arcane" "exact"
 
-  # Help should contain the action list — "greet" is always in the template
-  # TEMPLATE: Replace "greet" with a keyword that must appear in your help text.
-  run_test_semantic "rustcane help: mentions greet action" \
-    "rustcane" '{"action":"help"}' \
-    "help" "greet" "contains"
+  # ── help ──────────────────────────────────────────────────────────────────────
+  # help is scope-free and served locally — always available, lists every action.
+
+  # Basic help — the "tool" key identifies the tool.
+  run_test "arcane help: returns tool field" \
+    "arcane" '{"action":"help"}' "tool"
+
+  # help self-identifies as the arcane tool.
+  run_test_semantic "arcane help: tool is arcane" \
+    "arcane" '{"action":"help"}' \
+    "tool" "arcane" "exact"
+
+  # help.summary.actions lists every known action; "container" must appear.
+  run_test_semantic "arcane help: action list includes container" \
+    "arcane" '{"action":"help"}' \
+    "summary.actions" "container" "contains"
 }
 
 # ── suite_schema_resource ──────────────────────────────────────────────────────
-# TEMPLATE: The schema resource is exposed by the rustcane as:
-#           rustcane://schema/mcp-tool
-#           Replace "rustcane" with your service name in the URI.
+# The schema resource is exposed by the rustcane server at the (server-scoped)
+# URI rustcane://schema/mcp-tool. The tool it describes is named `arcane`.
 suite_schema_resource() {
   printf '\n%b== schema resource ==%b\n' "${C_BOLD}" "${C_RESET}" | tee -a "${LOG_FILE}"
 
@@ -633,10 +603,10 @@ try:
     if isinstance(schema, list):
         schema = schema[0] if schema else {}
 
-    # TEMPLATE: Replace 'rustcane' with your tool name in these checks.
+    # The registered tool name must be 'arcane' (see src/mcp/schemas.rs).
     name = schema.get('name', '')
-    if name != 'rustcane':
-        print('name mismatch: expected \"rustcane\", got \"' + name + '\"')
+    if name != 'arcane':
+        print('name mismatch: expected \"arcane\", got \"' + name + '\"')
         sys.exit(0)
 
     if 'inputSchema' not in schema:
@@ -660,9 +630,9 @@ except Exception as e:
   )" || schema_check="parse_error"
 
   if [[ "${schema_check}" == "ok" ]]; then
-    _pass "schema resource: valid JSON schema with name=rustcane and inputSchema" "${elapsed_ms}"
+    _pass "schema resource: valid JSON schema with name=arcane and inputSchema" "${elapsed_ms}"
   else
-    _fail "schema resource: valid JSON schema with name=rustcane and inputSchema" \
+    _fail "schema resource: valid JSON schema with name=arcane and inputSchema" \
       "${elapsed_ms}" "${schema_check}"
   fi
 }
@@ -737,7 +707,6 @@ main() {
   load_env
 
   printf '%b%s%b\n' "${C_BOLD}" "$(printf '=%.0s' {1..65})" "${C_RESET}"
-  # TEMPLATE: Replace "rustcane-mcp" with your service name in this banner.
   printf '%b  rustcane-mcp integration smoke-test%b\n' "${C_BOLD}" "${C_RESET}"
   printf '%b  Project:  %s%b\n' "${C_BOLD}" "${PROJECT_DIR}" "${C_RESET}"
   printf '%b  MCP URL:  %s%b\n' "${C_BOLD}" "${MCP_URL}" "${C_RESET}"
@@ -752,7 +721,6 @@ main() {
     log_error ""
     log_error "Server connectivity check failed. Aborting."
     log_error ""
-    # TEMPLATE: Replace port 40060 and service name in these diagnostic messages.
     log_error "To diagnose:"
     log_error "  just dev                            # start in no-auth dev mode"
     log_error "  curl http://localhost:40060/health   # check health endpoint"

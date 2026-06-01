@@ -50,8 +50,13 @@ The script targets `http://<RUSTCANE_MCP_HOST>:<RUSTCANE_MCP_PORT>/mcp`, default
 ## What the test suite validates
 
 - auth rejection when `RUSTCANE_MCP_TOKEN` is set
-- tool semantic behavior for `greet`, `echo`, `status`, and `help`
-- MCP resource behavior for `rustcane://schema/mcp-tool`
+- semantic behavior of the `arcane` tool's read-only `status` and `help` actions
+- MCP resource behavior for `rustcane://schema/mcp-tool` (the schema names the tool `arcane`)
+
+Only read-only, environment-independent actions are smoke-tested. Destructive
+actions (container/image/network/volume/system/project/gitops mutations) are
+never called. Read-only data actions such as `environment` subaction `list` hit
+a real Arcane backend, so they are not asserted unless one is configured.
 
 The resource suite prefers mcporter resource commands when available and falls back to JSON-RPC `resources/read` for older mcporter versions. Bearer-auth tool calls fall back to JSON-RPC `tools/call` when the installed mcporter does not yet support HTTP headers on `mcporter call`.
 
@@ -61,11 +66,11 @@ Use semantic assertions, not liveness-only checks:
 
 ```bash
 # Bad test — only proves MCP responded
-run_test "server info" "rustcane" '{"action":"status"}'
+run_test "server info" "arcane" '{"action":"status"}'
 
 # Good test — proves the service actually returned real data
-run_test "status has version" "rustcane" '{"action":"status"}' "version"
-run_test "echo roundtrip" "rustcane" '{"action":"echo","message":"hello"}' "hello"
+run_test_semantic "status is ok" "arcane" '{"action":"status"}' "status" "ok" "exact"
+run_test_semantic "help is arcane" "arcane" '{"action":"help"}' "tool" "arcane" "exact"
 ```
 
 A test that checks `is_error: false` is not a good test — it only verifies the MCP protocol layer responded. Semantic tests check that the actual service data is present and structurally correct.
@@ -94,7 +99,7 @@ MCP resources are public contract, not implementation detail. Test every stable 
 
 - The resource URI resolves.
 - The returned content parses as JSON.
-- The tool name is `rustcane`.
+- The tool name is `arcane`.
 - `inputSchema.type` is `object`.
 - `inputSchema.properties.action` exists.
 
