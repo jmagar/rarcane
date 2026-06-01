@@ -44,22 +44,22 @@ fn plugin_manifests_share_identity_and_connection_settings() {
     assert!(claude["repository"]
         .as_str()
         .unwrap()
-        .ends_with("rustcane-mcp"));
+        .ends_with("/rustcane"));
     assert!(codex["repository"]
         .as_str()
         .unwrap()
-        .ends_with("rustcane-mcp"));
+        .ends_with("/rustcane"));
     assert!(gemini["repository"]
         .as_str()
         .unwrap()
-        .ends_with("rustcane-mcp"));
+        .ends_with("/rustcane"));
 
     let user_config = claude["userConfig"].as_object().unwrap();
     for key in [
         "server_url",
         "api_token",
-        "arcane_api_url",
-        "arcane_api_key",
+        "rustcane_api_url",
+        "rustcane_api_key",
     ] {
         assert!(
             user_config.contains_key(key),
@@ -76,8 +76,8 @@ fn plugin_manifests_share_identity_and_connection_settings() {
     for key in [
         "server_url",
         "api_token",
-        "arcane_api_url",
-        "arcane_api_key",
+        "rustcane_api_url",
+        "rustcane_api_key",
     ] {
         assert!(
             gemini_settings.contains(&key),
