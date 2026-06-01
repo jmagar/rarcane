@@ -15,7 +15,7 @@ members = [".", "xtask"]
 resolver = "2"
 
 [package]
-name = "rarcane"
+name = "rustcane"
 version = "0.4.0"
 edition = "2021"
 rust-version = "1.90"
