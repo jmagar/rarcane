@@ -136,7 +136,7 @@ fn setup_command(data_dir: &std::path::Path) -> Command {
     cmd.env_clear()
         .env("HOME", data_dir)
         .env("PATH", std::env::var("PATH").unwrap_or_default())
-        .env("CLAUDE_PLUGIN_DATA", data_dir)
+        .env("RARCANE_HOME", data_dir)
         .env("RARCANE_API_URL", "https://api.rarcane.test")
         .env("RARCANE_API_KEY", "rarcane-secret")
         .env("RARCANE_MCP_PORT", "0")
@@ -156,7 +156,7 @@ fn plugin_hook_maps_plugin_options_into_env() {
     cmd.env_clear()
         .env("HOME", dir.path())
         .env("PATH", std::env::var("PATH").unwrap_or_default())
-        .env("CLAUDE_PLUGIN_DATA", dir.path())
+        .env("RARCANE_HOME", dir.path())
         .env("RARCANE_MCP_PORT", "0")
         // Supply credentials only via plugin options, not RARCANE_* directly.
         .env(
@@ -288,7 +288,7 @@ fn oauth_setup_command(data_dir: &std::path::Path) -> Command {
     cmd.env_clear()
         .env("HOME", data_dir)
         .env("PATH", std::env::var("PATH").unwrap_or_default())
-        .env("CLAUDE_PLUGIN_DATA", data_dir)
+        .env("RARCANE_HOME", data_dir)
         .env("RARCANE_API_URL", "https://api.rarcane.test")
         .env("RARCANE_API_KEY", "rarcane-secret")
         .env("RARCANE_MCP_PORT", "0")

@@ -44,6 +44,11 @@ async fn main() -> Result<()> {
         _ => {}
     }
 
+    // Load ~/.rarcane/.env (or /data/.env in a container) before any Config::load
+    // so the binary works on bare metal without a process manager injecting env.
+    // Non-overriding: explicit process env still wins.
+    rarcane::config::load_dotenv();
+
     // Suppress logs in stdio/CLI mode — MCP clients communicate over stdio
     // and cannot tolerate log lines mixed into the JSON stream.
     let stdio_mode = matches!(args.as_slice(), [c] if c == "mcp");

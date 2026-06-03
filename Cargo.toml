@@ -70,6 +70,7 @@ dirs = "6"
 
 # Errors
 anyhow = "1"
+dotenvy = "0.15.7"
 
 [features]
 default = []

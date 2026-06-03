@@ -219,6 +219,35 @@ pub fn default_data_dir() -> anyhow::Result<std::path::PathBuf> {
     Ok(home.join(SERVICE_HOME_DIRNAME))
 }
 
+/// Load `~/.rarcane/.env` (or `/data/.env` in a container) into the process
+/// environment if present.
+///
+/// Best-effort: a missing file is ignored, and existing env vars are NOT
+/// overridden — values injected by docker-compose/systemd or the plugin hook's
+/// `CLAUDE_PLUGIN_OPTION_*` mapping still take precedence. Lets the binary find
+/// its credentials directly from `~/.rarcane/.env` without a process manager.
+/// Call once at startup before `Config::load`. A symlinked `.env` is refused
+/// (the dir holds secrets; mirrors axon).
+pub fn load_dotenv() {
+    let Ok(dir) = default_data_dir() else {
+        return;
+    };
+    let env_path = dir.join(".env");
+    match std::fs::symlink_metadata(&env_path) {
+        Ok(md) if md.file_type().is_symlink() => {
+            eprintln!(
+                "error: refusing to load symlinked .env at {} (potential symlink attack)",
+                env_path.display()
+            );
+            std::process::exit(1);
+        }
+        Ok(_) => {
+            let _ = dotenvy::from_path(&env_path);
+        }
+        Err(_) => {}
+    }
+}
+
 // ── Config loading ────────────────────────────────────────────────────────────
 
 impl Config {
