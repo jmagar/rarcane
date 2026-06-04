@@ -14,7 +14,6 @@
     "homelab",
     "mcp"
   ],
-  "mcpServers": "./.mcp.json",
   "skills": "./skills",
   "experimental": {
     "monitors": "./monitors/monitors.json"

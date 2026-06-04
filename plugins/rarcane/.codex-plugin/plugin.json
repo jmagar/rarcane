@@ -13,7 +13,6 @@
     "mcp"
   ],
   "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Rarcane MCP",
     "shortDescription": "Manage Docker via the Arcane API",
