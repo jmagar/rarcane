@@ -18,21 +18,7 @@
 #   runtime  — Minimal Debian image with only the binary + curl for health checks
 # =============================================================================
 
-# ── Stage 1: Web assets ───────────────────────────────────────────────────────
-# Build the static Next.js export inside Docker so fresh clones do not need a
-# pre-existing ignored apps/web/out/ directory.
-FROM node:26-bookworm-slim AS web
-
-WORKDIR /app/apps/web
-
-COPY apps/web/package.json apps/web/pnpm-lock.yaml ./
-RUN npm install -g "$(node -p "require('./package.json').packageManager")" && \
-    pnpm install --frozen-lockfile
-
-COPY apps/web/ ./
-RUN pnpm build
-
-# ── Stage 2: Builder ──────────────────────────────────────────────────────────
+# ── Stage 1: Builder ──────────────────────────────────────────────────────────
 # TEMPLATE: Pin to a digest for reproducible builds:
 #   docker pull rust:1.90-slim-bookworm
 #   docker inspect --format '{{index .RepoDigests 0}}' rust:1.90-slim-bookworm
@@ -65,9 +51,6 @@ RUN --mount=type=cache,id=rarcane-cargo-registry,target=/usr/local/cargo/registr
 # The `touch src/main.rs` forces Cargo to re-link even when timestamps haven't
 # changed (Docker layer caching can confuse Cargo's incremental build detection).
 COPY src/ src/
-COPY docs/generated/openapi.json docs/generated/openapi.json
-# Embed the Next.js static export built in the web stage.
-COPY --from=web /app/apps/web/out/ apps/web/out/
 RUN --mount=type=cache,id=rarcane-cargo-registry,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,id=rarcane-cargo-git,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,id=rarcane-cargo-target,target=/app/target,sharing=locked \
