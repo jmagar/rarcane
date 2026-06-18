@@ -4,17 +4,15 @@
   "author": "Jacob Magar",
   "repository": "https://github.com/jmagar/rarcane",
   "license": "MIT",
-  "keywords": ["rarcane", "arcane", "docker", "containers", "homelab", "mcp"],
+  "keywords": [
+    "rarcane",
+    "arcane",
+    "docker",
+    "containers",
+    "homelab",
+    "mcp"
+  ],
   "contextFileName": "GEMINI.md",
-  "mcpServers": {
-    "rarcane": {
-      "type": "http",
-      "url": "${settings.server_url}/mcp",
-      "headers": {
-        "Authorization": "Bearer ${settings.api_token}"
-      }
-    }
-  },
   "skills": "./skills",
   "hooks": "./hooks/hooks.json",
   "settings": [
