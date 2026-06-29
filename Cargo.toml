@@ -32,7 +32,7 @@ tokio = { version = "1", features = ["full"] }
 
 # HTTP / MCP transport
 axum = "0.8"
-rmcp = { version = "1.7.0", default-features = false, features = [
+rmcp = { version = "2.0.0", default-features = false, features = [
   "server",
   "macros",
   "transport-streamable-http-server",
@@ -80,7 +80,7 @@ test-support = []
 rarcane = { path = ".", features = ["test-support"] }
 tempfile = "3"
 tower = { version = "0.5", features = ["util"] }
-rmcp = { version = "1.7.0", default-features = false, features = [
+rmcp = { version = "2.0.0", default-features = false, features = [
   "client",
   "transport-child-process",
 ] }
