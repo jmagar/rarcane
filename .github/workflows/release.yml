@@ -52,7 +52,7 @@ jobs:
             ext: ".exe"
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Rust target
         uses: dtolnay/rust-toolchain@stable
@@ -74,7 +74,7 @@ jobs:
           sudo apt-get install -y pkg-config libssl-dev
 
       - name: Cache Cargo
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -137,7 +137,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           lfs: true
           # Use a deploy key or token with write access to push the commit.
@@ -187,7 +187,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Download all artifacts
         uses: actions/download-artifact@v8
