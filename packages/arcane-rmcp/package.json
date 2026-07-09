@@ -1,0 +1,37 @@
+{
+  "name": "arcane-rmcp",
+  "version": "0.4.0",
+  "description": "Node launcher for the rarcane Rust MCP server and CLI binary.",
+  "license": "MIT",
+  "homepage": "https://github.com/jmagar/arcane-rmcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jmagar/arcane-rmcp.git",
+    "directory": "packages/arcane-rmcp"
+  },
+  "bugs": {
+    "url": "https://github.com/jmagar/arcane-rmcp/issues"
+  },
+  "bin": {
+    "rarcane": "bin/rarcane.js"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "scripts/",
+    "README.md"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/install.js",
+    "test": "node --test",
+    "check": "node --check bin/rarcane.js && node --check scripts/install.js && node --check lib/platform.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "arcane",
+    "docker"
+  ]
+}

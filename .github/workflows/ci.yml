@@ -223,3 +223,18 @@ jobs:
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  npm:
+    name: npm launcher
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test npm launcher
+        run: npm test --prefix packages/arcane-rmcp
+      - name: Check npm launcher syntax
+        run: npm run check --prefix packages/arcane-rmcp
+      - name: Dry-run npm package
+        run: npm pack --dry-run --json ./packages/arcane-rmcp
