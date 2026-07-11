@@ -8,9 +8,9 @@
 # Key substitutions:
 #   "rarcane"              → your binary name (e.g. "myservice")
 #   "rarcane-cargo-*"      → your cache mount IDs (e.g. "myservice-cargo-*")
-#   "rarcane-mcp"          → your systemd/Docker service name
-#   EXPOSE 40060            → your port (must match config.toml [mcp] port)
-#   HEALTHCHECK port 40060  → same as EXPOSE
+#   "arcane-rmcp"          → your systemd/Docker service name
+#   EXPOSE 40110            → your port (must match config.toml [mcp] port)
+#   HEALTHCHECK port 40110  → same as EXPOSE
 #   CMD ["rarcane", ...]   → your binary name
 #
 # Build stages:
@@ -106,16 +106,16 @@ ENV RUST_LOG=info
 # Pattern §26 + §16 (USER 1000:1000 via entrypoint, not Dockerfile USER directive).
 
 # TEMPLATE: Change to match your config.toml [mcp] port = 3000
-EXPOSE 40060/tcp
+EXPOSE 40110/tcp
 
 # Health check hits /health (always unauthenticated in the rarcane design).
 # TEMPLATE: Change port to match EXPOSE above.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD curl -sf http://localhost:40060/health || exit 1
+  CMD curl -sf http://localhost:40110/health || exit 1
 
 # MCP registry label — used by Claude Code plugin discovery.
 # TEMPLATE: Replace with your registry path: "tv.tootie/yourservice-mcp"
-LABEL io.modelcontextprotocol.server.name="tv.tootie/rarcane-mcp"
+LABEL io.modelcontextprotocol.server.name="tv.tootie/arcane-rmcp"
 
 # Entrypoint handles permission setup and privilege drop.
 # CMD is the default argument passed to entrypoint.sh.

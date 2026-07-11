@@ -88,7 +88,7 @@ Auth is selected in `build_auth_policy()` in `main.rs`. Scopes are `rarcane:read
 | `RARCANE_API_URL` | — | Upstream service base URL |
 | `RARCANE_API_KEY` | — | Upstream service API key |
 | `RARCANE_MCP_HOST` | `127.0.0.1` | Bind host |
-| `RARCANE_MCP_PORT` | `40060` | Bind port |
+| `RARCANE_MCP_PORT` | `40110` | Bind port |
 | `RARCANE_MCP_NO_AUTH` | `false` | Disable auth (loopback only) |
 | `RARCANE_MCP_TOKEN` | — | Static bearer token |
 | `RARCANE_MCP_ALLOWED_HOSTS` | — | Extra comma-separated Host header values |
@@ -122,7 +122,7 @@ just test                 # cargo test
 just lint                 # cargo clippy -- -D warnings
 just fmt                  # cargo fmt
 just gen-token            # openssl rand -hex 32
-just health               # curl http://localhost:40060/health | jq .
+just health               # curl http://localhost:40110/health | jq .
 ```
 
 ## Test helpers
@@ -164,7 +164,7 @@ Plugin manifests (`.claude-plugin/plugin.json`, `.codex-plugin/plugin.json`, `ge
 - **`config.toml` is a template file** — it still contains `unraid-mcp` values; update it when adapting this template.
 - **Scope checks run in `rmcp_server.rs`**, not in `tools.rs`. `tools.rs` only dispatches.
 - **`help` action is public** — `required_scope_for("help")` returns `None`. All other actions require at least `rarcane:read`.
-- **Default port is 40060** — set in `default_mcp_port()` in `config.rs`. Override with `RARCANE_MCP_PORT`.
+- **Default port is 40110** — set in `default_mcp_port()` in `config.rs`. Override with `RARCANE_MCP_PORT`.
 - **`elicit_name` is MCP-only** — elicitation requires a live client connection; it cannot be invoked from the CLI. This is the one intentional parity exception.
 - **`watch`, `serve`, and `doctor` are CLI infrastructure** — they are not MCP actions and have no parity requirement. `watch` polls `/health` and emits state-change lines to stdout (used by the plugin monitor). `serve` starts the HTTP server. `doctor` runs pre-flight checks. None belong in the MCP parity table.
 

@@ -62,12 +62,12 @@ host = "0.0.0.0"
 #   tailscale-mcp: 7575
 #   apprise-mcp:  8765
 #   rarcane: 3000
-port = 40060
+port = 40110
 
 # Server name advertised to MCP clients in the tools/list response.
 # RARCANE_MCP_SERVER_NAME env var overrides this.
-# TEMPLATE: Replace "rarcane-mcp" with your service name (e.g. "unraid-mcp").
-server_name = "rarcane-mcp"
+# TEMPLATE: Replace "arcane-rmcp" with your service name (e.g. "unraid-mcp").
+server_name = "arcane-rmcp"
 
 # Disable authentication entirely.
 # ONLY safe when host = "127.0.0.1" (loopback — your machine only).

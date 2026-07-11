@@ -8,7 +8,7 @@
 #   "arcane-rmcp"          -> your Docker service/container name
 #   "arcane-rmcp-data"     -> your Docker volume name
 #   "ghcr.io/.../rarcane"  -> your published Docker image path
-#   port 40060             -> your service's MCP port
+#   port 40110             -> your service's MCP port
 #   RARCANE_*              -> your env var prefix
 # =============================================================================
 
@@ -42,9 +42,11 @@ services:
         required: false
     environment:
       RARCANE_MCP_HOST: 0.0.0.0
+      RARCANE_MCP_PORT: "40110"
+      RARCANE_MCP_SERVER_NAME: arcane-rmcp
       RARCANE_NOAUTH: "true"
     ports:
-      - "${RARCANE_MCP_HOST_PORT:-40060}:40060/tcp"
+      - "${RARCANE_MCP_HOST_PORT:-40110}:40110/tcp"
     volumes:
       - ${HOME}/.rarcane:/data
     cap_drop:
@@ -56,7 +58,7 @@ services:
     tmpfs:
       - /tmp
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:40060/health || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:40110/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3

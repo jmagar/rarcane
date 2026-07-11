@@ -29,7 +29,7 @@ The template uses `RARCANE_*` variables. Rename the prefix when adapting the tem
 | Variable | Default | Purpose |
 |---|---:|---|
 | `RARCANE_MCP_HOST` | `127.0.0.1` | Bind host for HTTP transport. Set `0.0.0.0` only with bearer, OAuth, or trusted-gateway auth configured. |
-| `RARCANE_MCP_PORT` | `40060` | Bind port for HTTP transport. |
+| `RARCANE_MCP_PORT` | `40110` | Bind port for HTTP transport. |
 | `RARCANE_MCP_NO_AUTH` | `false` | Disable local auth for loopback development only. |
 | `RARCANE_NOAUTH` | `false` | Trusted-gateway no-auth mode for non-loopback deployments. |
 | `RARCANE_MCP_TOKEN` | unset | Static bearer token. Required for bearer-only mounted HTTP. |

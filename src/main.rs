@@ -89,7 +89,7 @@ async fn serve_mcp() -> Result<()> {
         bind = %state.config.bind_addr(),
         server_name = %state.config.server_name,
         auth = ?state.auth_policy,
-        "rarcane-mcp starting"
+        "MCP HTTP server starting"
     );
 
     let bind = state.config.bind_addr();
