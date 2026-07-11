@@ -4,8 +4,8 @@ set -euo pipefail
 
 MODE="auto"
 PULL="false"
-UNIT="${RARCANE_MCP_SYSTEMD_UNIT:-rarcane-mcp.service}"
-SERVICE="${RARCANE_MCP_DOCKER_SERVICE:-rarcane-mcp}"
+UNIT="${RARCANE_MCP_SYSTEMD_UNIT:-arcane-rmcp.service}"
+SERVICE="${RARCANE_MCP_DOCKER_SERVICE:-arcane-rmcp}"
 COMPOSE_DIR="${RARCANE_MCP_COMPOSE_DIR:-$(pwd)}"
 EXPECTED_BINARY="${RARCANE_MCP_EXPECTED_BINARY:-}"
 
@@ -20,14 +20,14 @@ Checks:
 Options:
   --mode auto|systemd|docker  Runtime to check. Default: auto.
   --pull                      Docker only: pull compose image before comparing.
-  --unit NAME                 Systemd user unit. Default: rarcane-mcp.service.
-  --service NAME              Docker Compose service/container. Default: rarcane-mcp.
+  --unit NAME                 Systemd user unit. Default: arcane-rmcp.service.
+  --service NAME              Docker Compose service/container. Default: arcane-rmcp.
   --compose-dir DIR           Docker Compose project dir. Default: current directory.
   --expected-binary PATH      Systemd: also compare running binary to this path.
   -h, --help                  Show this help.
 
 TEMPLATE:
-  Replace RARCANE_* env vars, rarcane-mcp, and rarcane binary names when adapting.
+  Replace RARCANE_* env vars, arcane-rmcp, and rarcane binary names when adapting.
 EOF
 }
 

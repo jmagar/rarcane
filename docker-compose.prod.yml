@@ -5,14 +5,14 @@
 #           Replace all occurrences of "EXAMPLE" with your service name in caps.
 #
 # Key substitutions:
-#   "rarcane-mcp"          -> your Docker service/container name
-#   "rarcane-mcp-data"     -> your Docker volume name
+#   "arcane-rmcp"          -> your Docker service/container name
+#   "arcane-rmcp-data"     -> your Docker volume name
 #   "ghcr.io/.../rarcane"  -> your published Docker image path
 #   port 40060             -> your service's MCP port
 #   RARCANE_*              -> your env var prefix
 # =============================================================================
 
-name: rarcane
+name: arcane-rmcp
 
 x-common-service: &common-service
   networks:
@@ -32,11 +32,11 @@ x-common-service: &common-service
       compress: "true"
 
 services:
-  rarcane-mcp:
+  arcane-rmcp:
     <<: *common-service
     # TEMPLATE: Replace with your image path.
     image: ghcr.io/your-org/rarcane-mcp:${RARCANE_MCP_VERSION:-latest}
-    container_name: rarcane-mcp
+    container_name: arcane-rmcp
     env_file:
       - path: .env
         required: false
@@ -68,7 +68,7 @@ services:
           cpus: '0.5'
 
 volumes:
-  rarcane-mcp-data:
+  arcane-rmcp-data:
 
 networks:
   mcp:
