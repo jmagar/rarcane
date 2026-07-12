@@ -2,7 +2,7 @@
   "mcpServers": {
     "rarcane": {
       "command": "npx",
-      "args": ["-y", "arcane-rmcp"]
+      "args": ["-y", "arcane-rmcp", "mcp"]
     }
   }
 }

@@ -43,15 +43,15 @@ fn plugin_manifests_share_identity_and_connection_settings() {
     assert!(claude["repository"]
         .as_str()
         .unwrap()
-        .ends_with("/rarcane"));
+        .ends_with("/arcane-rmcp"));
     assert!(codex["repository"]
         .as_str()
         .unwrap()
-        .ends_with("/rarcane"));
+        .ends_with("/arcane-rmcp"));
     assert!(gemini["repository"]
         .as_str()
         .unwrap()
-        .ends_with("/rarcane"));
+        .ends_with("/arcane-rmcp"));
 
     let user_config = claude["userConfig"].as_object().unwrap();
     for key in [
@@ -84,13 +84,10 @@ fn plugin_manifests_share_identity_and_connection_settings() {
         );
     }
 
+    assert_eq!(mcp["mcpServers"]["rarcane"]["command"], "npx");
     assert_eq!(
-        mcp["mcpServers"]["rarcane"]["url"],
-        "${user_config.server_url}/mcp"
-    );
-    assert_eq!(
-        mcp["mcpServers"]["rarcane"]["headers"]["Authorization"],
-        "Bearer ${user_config.api_token}"
+        mcp["mcpServers"]["rarcane"]["args"],
+        serde_json::json!(["-y", "arcane-rmcp", "mcp"])
     );
     assert_eq!(
         gemini["mcpServers"]["rarcane"]["url"],
@@ -109,7 +106,10 @@ fn claude_hooks_call_binary_setup_plugin_hook_directly() {
         let command = hooks["hooks"][hook_name][0]["hooks"][0]["command"]
             .as_str()
             .unwrap();
-        assert_eq!(command, "${CLAUDE_PLUGIN_ROOT}/bin/rarcane setup plugin-hook");
+        assert_eq!(
+            command,
+            "${CLAUDE_PLUGIN_ROOT}/bin/rarcane setup plugin-hook"
+        );
     }
 }
 

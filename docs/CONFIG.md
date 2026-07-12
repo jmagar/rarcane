@@ -11,8 +11,8 @@
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `RARCANE_MCP_HOST` | `0.0.0.0` | HTTP bind host |
-| `RARCANE_MCP_PORT` | `3100` | HTTP bind port |
+| `RARCANE_MCP_HOST` | `127.0.0.1` | HTTP bind host |
+| `RARCANE_MCP_PORT` | `40110` | HTTP bind port |
 | `RARCANE_MCP_TOKEN` | unset | Static bearer token |
 | `RARCANE_MCP_NO_AUTH` | false | Disable auth on loopback only |
 | `RARCANE_NOAUTH` | false | Explicit trusted gateway mode |

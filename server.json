@@ -1,77 +1,38 @@
-<!-- TEMPLATE: server.json — MCP Registry manifest for publishing your server.
-     See docs/MCP-REGISTRY-PUBLISH-GUIDE.md for step-by-step publishing instructions.
-
-     Field reference:
-       $schema        — Always use this exact URL for 2025-12-11 schema validation.
-       name           — TEMPLATE: Reverse-DNS namespace: "yourdomain.com/your-service-mcp".
-                        Use the domain you own (DNS-based identity proof required to publish).
-                        The tv.tootie/ prefix belongs to this project's author.
-       title          — TEMPLATE: Human-readable display name shown in MCP registry UIs.
-       description    — TEMPLATE: One-sentence description of what the server does.
-       repository.url — TEMPLATE: Your GitHub (or GitLab) repo URL.
-       repository.source — Leave as "github" (or change to "gitlab").
-       version        — TEMPLATE: Semantic version. Automated by release.yml on tags.
-       packages       — List of distribution packages. OCI (Docker) is the standard format.
-         registryType — "oci" for container images. Other options: "npm", "pypi".
-         identifier   — TEMPLATE: Full OCI image ref with version tag.
-                        Pattern: ghcr.io/<org>/<repo>:<version>
-         version      — TEMPLATE: Must match the top-level version field.
-         environmentVariables — All env vars the container needs. List every required var.
-           name        — Exact env var name (used by registry UIs to generate setup forms).
-           description — TEMPLATE: User-visible description shown in the registry UI.
-           isRequired  — true: server fails to start without it. false: optional feature.
-           isSecret    — true: registry UI masks the value (API keys, tokens, passwords).
-       remotes        — TEMPLATE: Where users connect to a hosted instance of this server.
-                        Remove this block if you don't run a public hosted instance.
-         type         — "streamable-http" is the modern MCP transport (preferred over SSE).
-         url          — TEMPLATE: Replace with your actual hosted /mcp endpoint URL.
--->
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-
-  "name": "tv.tootie/rarcane-mcp",
+  "name": "tv.tootie/arcane-rmcp",
   "title": "Arcane MCP",
-  "description": "TEMPLATE: Replace with your server description — one sentence describing what service this MCP server exposes.",
-
+  "description": "MCP server for Arcane Docker management — manage containers, images, networks, volumes, compose projects, GitOps, and vulnerability findings.",
   "repository": {
-    "url": "https://github.com/jmagar/rarcane-mcp",
+    "url": "https://github.com/jmagar/arcane-rmcp",
     "source": "github"
   },
-
-  "version": "0.4.0",
-
+  "version": "0.4.1",
   "packages": [
     {
       "registryType": "oci",
-      "identifier": "ghcr.io/jmagar/rarcane-mcp:0.4.0",
-      "version": "0.4.0",
+      "identifier": "ghcr.io/jmagar/arcane-rmcp:0.4.1",
+      "version": "0.4.1",
       "environmentVariables": [
         {
           "name": "RARCANE_API_URL",
-          "description": "TEMPLATE: Replace with your service's base URL description. Arcane: 'Base URL of your Arcane service, e.g. https://api.rarcane.com/v1'.",
+          "description": "Base URL of your Arcane API server, e.g. https://arcane.example.com.",
           "isRequired": true,
           "isSecret": false
         },
         {
           "name": "RARCANE_API_KEY",
-          "description": "TEMPLATE: Replace with your service's API key description. Arcane: 'API key for authenticating to the Arcane service.'",
+          "description": "API key or bearer token for authenticating to the upstream Arcane API.",
           "isRequired": true,
           "isSecret": true
         },
         {
           "name": "RARCANE_MCP_TOKEN",
-          "description": "Bearer token for MCP endpoint authentication. All /mcp requests must include: Authorization: Bearer <token>. Generate with: openssl rand -hex 32.",
+          "description": "Bearer token for MCP HTTP endpoint authentication. Generate with: openssl rand -hex 32.",
           "isRequired": false,
           "isSecret": true
         }
       ]
-    }
-  ],
-
-  "remotes": [
-    {
-      "type": "streamable-http",
-      "url": "https://rarcane.yourdomain.com/mcp"
     }
   ]
 }

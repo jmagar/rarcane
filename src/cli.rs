@@ -45,7 +45,7 @@ Environment:
   RARCANE_API_URL          Upstream service URL
   RARCANE_API_KEY          Upstream service API key
   RARCANE_MCP_HOST         Bind host (default 127.0.0.1)
-  RARCANE_MCP_PORT         Bind port (default 40060)
+  RARCANE_MCP_PORT         Bind port (default 40110)
   RARCANE_MCP_NO_AUTH      Disable auth (loopback only)
   RARCANE_MCP_TOKEN        Static bearer token
   RUST_LOG                 Log filter (e.g. info,rmcp=warn)";
@@ -152,10 +152,10 @@ where
                     reject_args(flags, "setup repair")?;
                     Some(Command::Setup(SetupCommand::Repair))
                 }
-                    [action, flags @ ..] if action == "install" => {
-                        reject_args(flags, "setup install")?;
-                        Some(Command::Setup(SetupCommand::Install))
-                    }
+                [action, flags @ ..] if action == "install" => {
+                    reject_args(flags, "setup install")?;
+                    Some(Command::Setup(SetupCommand::Install))
+                }
                 [action, flags @ ..] if action == "plugin-hook" => {
                     let no_repair = parse_bool_flag(flags, "setup plugin-hook", "--no-repair")?;
                     Some(Command::Setup(SetupCommand::PluginHook { no_repair }))

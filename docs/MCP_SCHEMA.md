@@ -29,7 +29,7 @@ python3 scripts/check-schema-docs.py --check
 | `image` | `rarcane:read` / `rarcane:write` | List, inspect, pull, prune, scan, and remove container images. |
 | `network` | `rarcane:read` / `rarcane:write` | List, inspect, create, prune, and remove Docker networks. |
 | `volume` | `rarcane:read` / `rarcane:write` | List, inspect, browse, back up, restore, create, prune, and remove Docker volumes. |
-| `system` | `rarcane:read` | Retrieve Arcane system information. |
+| `system` | `rarcane:read` / `rarcane:write` | Retrieve Arcane system information and run supported system operations. |
 | `image-update` | `rarcane:read` | Check image update status and summaries. |
 | `vulnerability` | `rarcane:read` / `rarcane:write` | Inspect, ignore, and unignore vulnerability findings. |
 | `registry` | `rarcane:read` / `rarcane:write` | List, inspect, test, create, update, and delete registry connections. |
