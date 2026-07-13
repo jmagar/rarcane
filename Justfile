@@ -329,6 +329,9 @@ build-plugin: build-release
     install -m 755 "${target_dir}/release/rarcane" plugins/rarcane/bin/rarcane
     echo "Installed bin/rarcane and plugins/rarcane/bin/rarcane"
 
+# Explicit binary artifact sync. This replaces hidden Cargo rustc-wrapper side effects.
+sync-bin: build-plugin
+
 # Install the release binary into bin/ (alias for build-plugin kept for compatibility)
 install: build-plugin
 
