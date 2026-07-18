@@ -97,7 +97,6 @@ fn tool_result_from_json_applies_response_cap() {
     }))
     .expect("tool result should serialize");
     let text = result.content[0]
-        .raw
         .as_text()
         .expect("tool result should contain text")
         .text

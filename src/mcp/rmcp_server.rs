@@ -13,10 +13,10 @@ use std::{borrow::Cow, sync::Arc, time::Instant};
 use lab_auth::AuthContext;
 use rmcp::{
     model::{
-        CallToolRequestParams, CallToolResult, Content, GetPromptRequestParams, GetPromptResult,
-        Implementation, ListPromptsResult, ListResourcesResult, ListToolsResult,
-        PaginatedRequestParams, RawResource, ReadResourceRequestParams, ReadResourceResult,
-        Resource, ResourceContents, ServerCapabilities, ServerInfo, Tool,
+        CallToolRequestParams, CallToolResult, ContentBlock, GetPromptRequestParams,
+        GetPromptResult, Implementation, ListPromptsResult, ListResourcesResult, ListToolsResult,
+        PaginatedRequestParams, ReadResourceRequestParams, ReadResourceResult, Resource,
+        ResourceContents, ServerCapabilities, ServerInfo, Tool,
     },
     service::{Peer, RequestContext},
     ErrorData, RoleServer, ServerHandler,
@@ -224,14 +224,9 @@ impl ServerHandler for ArcaneRmcpServer {
 const SCHEMA_RESOURCE_URI: &str = "rarcane://schema/mcp-tool";
 
 fn schema_resource() -> Resource {
-    Resource::new(
-        RawResource::new(SCHEMA_RESOURCE_URI, "rarcane tool schema")
-            .with_description(
-                "JSON schema for the rarcane MCP tool and its action-based parameters",
-            )
-            .with_mime_type("application/json"),
-        None,
-    )
+    Resource::new(SCHEMA_RESOURCE_URI, "rarcane tool schema")
+        .with_description("JSON schema for the rarcane MCP tool and its action-based parameters")
+        .with_mime_type("application/json")
 }
 
 // ── tool definition conversion ────────────────────────────────────────────────
@@ -270,7 +265,7 @@ fn tool_result_from_json(value: Value) -> Result<CallToolResult, ErrorData> {
     let text = serde_json::to_string(&value)
         .map_err(|e| ErrorData::internal_error(format!("serialization error: {e}"), None))?;
     let text = token_limit::truncate_if_needed(&text);
-    Ok(CallToolResult::success(vec![Content::text(text)]))
+    Ok(CallToolResult::success(vec![ContentBlock::text(text)]))
 }
 
 fn reject_unknown_action_before_scope(action: &str) -> Result<(), ErrorData> {
