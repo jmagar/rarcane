@@ -25,7 +25,7 @@ install -m 755 target/release/rarcane ~/.local/bin/rarcane
 Or use the install script:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jmagar/rarcane-mcp/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jmagar/arcane-rmcp/main/scripts/install.sh | bash
 ```
 
 The binary installs to `~/.local/bin/`. Verify it's in `$PATH`:
@@ -90,7 +90,8 @@ journalctl --user -u rarcane-mcp.service -f
 journalctl --user -u rarcane-mcp.service --since "1h ago"
 ```
 
-The binary also writes structured JSON logs to `~/.rarcane/logs/rarcane.log` regardless of deployment mode (see `docs/OBSERVABILITY.md`).
+The current binary logs to stderr, which systemd captures in the journal. The
+file-logging helpers are not wired into startup.
 
 ## Doctor pre-flight
 

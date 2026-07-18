@@ -1,6 +1,13 @@
 use super::*;
-use crate::{actions::ArcaneAction, arcane::ArcaneClient, config::ArcaneConfig};
+use crate::{
+    actions::{ArcaneAction, ACTION_SPECS},
+    arcane::ArcaneClient,
+    config::ArcaneConfig,
+};
 use serde_json::json;
+use tokio::sync::Mutex;
+
+static DESTRUCTIVE_ENV_LOCK: Mutex<()> = Mutex::const_new(());
 
 fn stub_service() -> ArcaneService {
     let client = ArcaneClient::new(&ArcaneConfig {
@@ -36,6 +43,9 @@ async fn help_does_not_call_upstream() {
 
 #[tokio::test]
 async fn destructive_actions_require_boolean_confirm() {
+    let _guard = DESTRUCTIVE_ENV_LOCK.lock().await;
+    let previous = std::env::var_os("RARCANE_MCP_ALLOW_DESTRUCTIVE");
+    std::env::remove_var("RARCANE_MCP_ALLOW_DESTRUCTIVE");
     let error = stub_service()
         .dispatch(&ArcaneAction {
             action: "project".into(),
@@ -47,6 +57,10 @@ async fn destructive_actions_require_boolean_confirm() {
         .await
         .expect_err("destructive action should be blocked before network");
     assert!(error.to_string().contains("confirmation required"));
+    match previous {
+        Some(value) => std::env::set_var("RARCANE_MCP_ALLOW_DESTRUCTIVE", value),
+        None => std::env::remove_var("RARCANE_MCP_ALLOW_DESTRUCTIVE"),
+    }
 }
 
 #[tokio::test]
@@ -62,6 +76,77 @@ async fn browse_rejects_path_traversal_before_network() {
         .await
         .expect_err("bad path should be blocked");
     assert!(error.to_string().contains("relative path"));
+}
+
+#[tokio::test]
+async fn restore_rejects_missing_backup_id_before_network() {
+    let error = stub_service()
+        .dispatch(&ArcaneAction {
+            action: "volume".into(),
+            subaction: Some("restore".into()),
+            env_id: Some("env-1".into()),
+            id: Some("volume-1".into()),
+            params: json!({"confirm": true}),
+        })
+        .await
+        .expect_err("backupId should be required");
+    assert!(error.to_string().contains("backupId"));
+}
+
+#[test]
+fn pagination_defaults_and_limits_are_enforced() {
+    let spec = spec_for("container", Some("list")).expect("list spec");
+    let action = ArcaneAction {
+        action: "container".into(),
+        subaction: Some("list".into()),
+        env_id: Some("env-1".into()),
+        id: None,
+        params: json!({}),
+    };
+    assert_eq!(
+        query_params(spec, &action).unwrap(),
+        Some(json!({"offset": 0, "limit": 50}))
+    );
+
+    let excessive = ArcaneAction {
+        params: json!({"limit": 201}),
+        ..action
+    };
+    assert!(query_params(spec, &excessive).is_err());
+}
+
+#[test]
+fn every_registry_path_can_be_built_without_placeholders() {
+    for spec in ACTION_SPECS.iter().filter(|spec| !spec.path.is_empty()) {
+        let action = ArcaneAction {
+            action: spec.action.into(),
+            subaction: spec.subaction.map(str::to_owned),
+            env_id: Some("env id".into()),
+            id: Some("resource/id".into()),
+            params: json!({"backupId": "backup/id", "imageRef": "repo/image:tag", "confirm": true}),
+        };
+        validate_request(spec, &action).unwrap_or_else(|error| panic!("{}: {error}", spec.key()));
+        let path = build_path(spec.path, &action).unwrap();
+        assert!(
+            !path.contains('{'),
+            "{} left placeholder in {path}",
+            spec.key()
+        );
+        reqwest::Method::from_bytes(spec.method.as_bytes())
+            .unwrap_or_else(|error| panic!("{} has invalid method: {error}", spec.key()));
+        let query = query_params(spec, &action)
+            .unwrap_or_else(|error| panic!("{} query failed: {error}", spec.key()));
+        if spec.method != "GET" {
+            assert!(query.is_none(), "{} sent a query on a write", spec.key());
+        }
+        let body = body_params(spec.body, &action.params);
+        assert_eq!(
+            body.is_some(),
+            spec.body != crate::actions::BodyMode::None,
+            "{} body contract drifted",
+            spec.key()
+        );
+    }
 }
 
 #[test]

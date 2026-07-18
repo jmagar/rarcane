@@ -1,7 +1,7 @@
 use serde_json::json;
 
 use crate::{
-    actions::{required_scope_for_action, READ_SCOPE, WRITE_SCOPE},
+    actions::{required_scope_for, required_scope_for_action, READ_SCOPE, WRITE_SCOPE},
     token_limit::MAX_RESPONSE_BYTES,
 };
 
@@ -23,7 +23,7 @@ fn read_scope_satisfies_read_requirement() {
 fn write_scope_satisfies_read_requirement() {
     assert!(
         scope_satisfied(&scopes(&[WRITE_SCOPE]), READ_SCOPE),
-        "write scope should satisfy read requirement (write ⊇ read)"
+        "write scope should include read access"
     );
 }
 
@@ -51,8 +51,15 @@ fn status_requires_read_scope() {
 }
 
 #[test]
-fn container_requires_write_scope_because_domain_has_mutating_actions() {
-    assert_eq!(required_scope_for_action("container"), Some(WRITE_SCOPE));
+fn container_scope_is_selected_per_subaction() {
+    assert_eq!(
+        required_scope_for("container", Some("list")),
+        Some(READ_SCOPE)
+    );
+    assert_eq!(
+        required_scope_for("container", Some("delete")),
+        Some(WRITE_SCOPE)
+    );
 }
 
 #[test]

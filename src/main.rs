@@ -15,7 +15,6 @@
 use anyhow::Result;
 use std::sync::Arc;
 
-use rmcp::{transport::stdio, ServiceExt};
 use rarcane::{
     app::ArcaneService,
     arcane::ArcaneClient,
@@ -24,6 +23,7 @@ use rarcane::{
     mcp,
     server::{self, resolve_auth_policy_kind, AppState, AuthPolicy, AuthPolicyKind},
 };
+use rmcp::{transport::stdio, ServiceExt};
 use tracing::info;
 use tracing_subscriber::{fmt, EnvFilter};
 
@@ -47,7 +47,7 @@ async fn main() -> Result<()> {
     // Load ~/.rarcane/.env (or /data/.env in a container) before any Config::load
     // so the binary works on bare metal without a process manager injecting env.
     // Non-overriding: explicit process env still wins.
-    rarcane::config::load_dotenv();
+    rarcane::config::load_dotenv()?;
 
     // Suppress logs in stdio/CLI mode — MCP clients communicate over stdio
     // and cannot tolerate log lines mixed into the JSON stream.

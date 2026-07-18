@@ -4,11 +4,11 @@
   "include-v-in-tag": true,
   "include-component-in-tag": false,
   "always-update": true,
+  "draft": true,
   "bootstrap-sha": "c3aa12be12acfb05a6c0da53593c4e430647f140",
   "label": "autorelease: pending,release-please",
   "release-label": "autorelease: tagged,release-please",
-  "pull-request-header": "This release PR is managed by release-please. Merge it to let release-please create the tag and GitHub Release.",
-  "pull-request-footer": "After release-please publishes the GitHub Release, release.yml builds and attaches binaries.",
+  "pull-request-header": "This release PR is managed by release-please. Merge it to create a draft release; binaries and npm must succeed before publication.",
   "changelog-sections": [
     {
       "type": "feat",

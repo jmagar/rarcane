@@ -6,7 +6,7 @@
 export RARCANE_API_URL=https://arcane.example.com
 export RARCANE_API_KEY=change-me
 export RARCANE_MCP_HOST=127.0.0.1
-export RARCANE_MCP_PORT=3100
+export RARCANE_MCP_PORT=40110
 export RARCANE_MCP_NO_AUTH=true
 ```
 
@@ -14,7 +14,7 @@ export RARCANE_MCP_NO_AUTH=true
 
 ```bash
 cargo run -- status
-cargo run -- help container
+cargo run -- help --domain container
 cargo run -- call --action container --subaction list --env-id default
 ```
 
@@ -31,8 +31,9 @@ cargo run -- serve
 ```
 
 ```bash
-curl -s http://127.0.0.1:3100/mcp \
+curl -s -X POST http://127.0.0.1:40110/mcp \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"arcane","arguments":{"action":"status"}}}'
 ```
 

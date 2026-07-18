@@ -11,6 +11,8 @@ Use the `arcane` MCP tool for Arcane Docker management. Prefer read actions firs
 
 ```text
 mcp__rarcane__arcane(action="status")
+mcp__rarcane__arcane(action="elicit_name")
+mcp__rarcane__arcane(action="scaffold_intent")
 mcp__rarcane__arcane(action="container", subaction="list", envId="default")
 mcp__rarcane__arcane(action="project", subaction="list", envId="default")
 mcp__rarcane__arcane(action="system", subaction="docker-info", envId="default")
@@ -18,6 +20,10 @@ mcp__rarcane__arcane(action="container", subaction="stop", envId="default", id="
 ```
 
 ## Domains
+
+`elicit_name` and `scaffold_intent` are MCP-only elicitation workflows. The
+latter returns a side-effect-free planning contract; it does not grant file
+mutation permission.
 
 | Domain | Typical Read Actions | Typical Write Actions |
 |---|---|---|

@@ -13,7 +13,10 @@
 //! ```
 
 use crate::{
-    actions::ArcaneAction, app::ArcaneService, arcane::ArcaneClient, config::ArcaneConfig,
+    actions::ArcaneAction,
+    app::{local_help, local_status, ArcaneService},
+    arcane::ArcaneClient,
+    config::ArcaneConfig,
 };
 use anyhow::{anyhow, Result};
 
@@ -175,22 +178,9 @@ where
 /// - All other commands get only `ArcaneConfig`; keep it that way.
 /// - Add `--json` support to each new command by forwarding a `json` flag.
 pub async fn run(cmd: Command, cfg: &ArcaneConfig) -> Result<()> {
-    let client = ArcaneClient::new(cfg)?;
-    let service = ArcaneService::new(client);
-
     let result = match &cmd {
-        Command::Status => service.status().await?,
-        Command::Help { domain } => {
-            service
-                .dispatch(&ArcaneAction {
-                    action: "help".into(),
-                    subaction: domain.clone(),
-                    env_id: None,
-                    id: None,
-                    params: serde_json::json!({}),
-                })
-                .await?
-        }
+        Command::Status => local_status(),
+        Command::Help { domain } => local_help(domain.as_deref()),
         Command::Call {
             action,
             subaction,
@@ -198,6 +188,7 @@ pub async fn run(cmd: Command, cfg: &ArcaneConfig) -> Result<()> {
             id,
             params,
         } => {
+            let service = ArcaneService::new(ArcaneClient::new(cfg)?);
             service
                 .dispatch(&ArcaneAction {
                     action: action.clone(),

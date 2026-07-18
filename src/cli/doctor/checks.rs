@@ -172,10 +172,12 @@ pub fn check_required_var(var_name: &str, value: &str) -> DoctorCheck {
 }
 
 fn redact(s: &str) -> String {
-    if s.len() <= 4 {
-        return "*".repeat(s.len());
+    let character_count = s.chars().count();
+    if character_count <= 4 {
+        return "*".repeat(character_count);
     }
-    format!("{}****", &s[..4])
+    let prefix = s.chars().take(4).collect::<String>();
+    format!("{prefix}****")
 }
 
 // ── Upstream connectivity ─────────────────────────────────────────────────────

@@ -115,10 +115,7 @@ fn allowed_origins_skips_invalid_and_wildcard_origins() {
     let cfg = McpConfig {
         host: "0.0.0.0".to_string(),
         port: 3000,
-        allowed_origins: vec![
-            "not-a-url".to_string(),
-            "https://*.rarcane.com".to_string(),
-        ],
+        allowed_origins: vec!["not-a-url".to_string(), "https://*.rarcane.com".to_string()],
         ..Default::default()
     };
     let origins = allowed_origins(&cfg);

@@ -174,3 +174,10 @@ fn auth_mode_rejects_bad_value() {
         "unknown auth mode should fail to deserialize"
     );
 }
+
+#[test]
+fn config_rejects_unknown_fields() {
+    let error = toml::from_str::<Config>("[mcp]\ntrusted_gatway = true\n")
+        .expect_err("unknown config keys must fail");
+    assert!(error.to_string().contains("trusted_gatway"));
+}

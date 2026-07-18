@@ -11,7 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-<!-- TEMPLATE: Add changes here as you work. They move to a version section on release. -->
+### Changed
+
+- Reconciled the active documentation with the MCP + CLI upstream-client
+  architecture; removed stale REST, Web, and OpenAPI claims.
+- Pattern checks now fail closed on file-read and directory-traversal errors.
+- Corrected setup, deployment, observability, OAuth topology, and prompt guidance.
+
+## [0.4.2] — 2026-07-18
+
+### Changed
+
+- Published the npm launcher at `0.4.2`; it downloads the matching release
+  archive for supported platforms.
+
+## [0.4.1] — 2026-07-18
+
+### Changed
+
+- Published the Rust crate and binary metadata at `0.4.1`.
+- Replaced the original greeting/echo scaffold with the Arcane domain action
+  registry and MCP/CLI dispatch surface.
 
 ## [0.4.0] — 2026-05-14
 
@@ -33,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `tests/plugin_contract.rs` — plugin contract integration tests.
 - `docs/PLUGINS.md` — documentation for the plugin system and distribution model.
 - `plugins/README.md`, `plugins/rarcane/README.md`, `plugins/rarcane/CLAUDE.md` — plugin-level documentation and agent guidance.
-- `apps/web/README.md`, `xtask/README.md`, `tests/README.md`, `scripts/README.md` — README coverage for every major directory.
+- `xtask/README.md`, `tests/README.md`, and `scripts/README.md` — focused automation and test documentation.
 - `.claude/` — Claude Code project settings for agent-assisted development.
 
 ### Changed
@@ -48,15 +68,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Split `src/mcp.rs` into three focused modules: `src/server.rs` (`AppState`, `AuthPolicy`, `build_auth_layer`), `src/server/routes.rs` (Axum router wiring), and `src/api.rs` (REST API handlers). `src/mcp/` now contains only MCP protocol concerns (tools, schemas, prompts, server handler).
+- Split HTTP server/auth wiring into `src/server.rs` and `src/server/routes.rs`; `src/mcp/` contains MCP protocol concerns.
 - `mcp/rmcp_server.rs` and `mcp/tools.rs` now import `AppState`/`AuthPolicy` from `crate::server` instead of `super`.
 - `allowed_origins` visibility widened from `pub(super)` to `pub` to support cross-module access from `server/routes.rs`.
-- Updated `src/lib.rs` and `src/main.rs` to reflect new module layout (`pub mod api`, `pub mod server`).
+- Updated `src/lib.rs` and `src/main.rs` to reflect the server module layout.
 
 ### Added
 
 - `deny.toml` — `cargo-deny` configuration enforcing license allowlist, banning `openssl`/`openssl-sys`, denying yanked crates, and restricting dependency sources to crates.io and `github.com/jmagar/lab.git`. RUSTSEC-2023-0071 acknowledged with rationale.
-- `apps/web/CLAUDE.md` — guidance for using the Aurora design system shadcn registry in the Next.js web app: install commands, token conventions, full component catalog, and usage rules.
 - `.git/hooks/pre-commit` — enforces the no-`mod.rs` rule at commit time; blocks any staged `mod.rs` file with a clear error message.
 - `docs/PATTERNS.md` updated: §1/§1a module layouts reflect new `server`/`api` structure with all `mod.rs` references removed; §5 auth section headers updated; §45 No mod.rs section now includes the git hook script; §A1/§A2 advanced patterns updated to match actual file locations.
 
@@ -76,10 +95,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bearer token authentication via `RARCANE_MCP_TOKEN`
 - Google OAuth authentication via `RARCANE_MCP_AUTH_MODE=oauth` (issues RS256 JWTs)
 - Loopback/no-auth mode for local development
-- MCP elicitation support (`elicit_name` action, spec 2025-06-18) with graceful fallback
 - MCP resources: exposes tool schema at `rarcane://schema/mcp-tool`
 - MCP prompts: `quick_start` prompt
-- CLI with `greet`, `echo`, and `status` subcommands
+- CLI with `status`, `help`, and generic Arcane `call` commands
 - Test helpers: `loopback_state()` and `bearer_state()` for credential-free integration tests
 - `AuthPolicy` enum making auth choice explicit at construction time
 - CORS, Host header validation, request body size limiting built-in

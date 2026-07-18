@@ -20,6 +20,7 @@ use crate::mcp::{allowed_origins, streamable_http_config, streamable_http_servic
 use crate::server::{build_auth_layer, AppState, AuthPolicy};
 
 const MCP_BODY_LIMIT_BYTES: usize = 65_536;
+const MAX_CONCURRENT_HTTP_REQUESTS: usize = 32;
 
 pub fn router(state: AppState) -> Router {
     let rmcp_config = streamable_http_config(&state.config);
@@ -90,8 +91,11 @@ pub fn router(state: AppState) -> Router {
     let base =
         base.fallback(|| async { (StatusCode::NOT_FOUND, Json(json!({"error": "not_found"}))) });
 
-    base.layer(RequestBodyLimitLayer::new(MCP_BODY_LIMIT_BYTES))
-        .layer(cors_layer(&state.config))
+    base.layer(tower::limit::ConcurrencyLimitLayer::new(
+        MAX_CONCURRENT_HTTP_REQUESTS,
+    ))
+    .layer(RequestBodyLimitLayer::new(MCP_BODY_LIMIT_BYTES))
+    .layer(cors_layer(&state.config))
 }
 
 /// `GET /health` — liveness probe (unauthenticated).

@@ -312,7 +312,6 @@ The coding agent may mutate files only after the user approves the plan produced
 | Schema docs generator descriptions | `scripts/check-schema-docs.py` |
 | Tool skill reference | `plugins/rarcane/skills/rarcane/SKILL.md` |
 | Handoff skill | `plugins/rarcane/skills/scaffold-project/SKILL.md` |
-| Web API explorer metadata | `apps/web/lib/template.ts` |
 
 ## Validation requirements
 
@@ -324,8 +323,6 @@ cargo test --lib
 just schema-docs-check
 just scaffold-contract-check
 just validate-plugin
-pnpm --dir apps/web check
-pnpm --dir apps/web typecheck
 ```
 
 If generated MCP schema docs drift, run:
@@ -334,9 +331,9 @@ If generated MCP schema docs drift, run:
 just schema-docs
 ```
 
-## OpenAPI serving decision
-
-For application/platform servers that scaffold the API surface, expose the generated REST schema at `GET /openapi.json` and keep `docs/generated/openapi.json` current with `just openapi`. For upstream-client MCP + CLI servers, keeping the generated file in docs is sufficient unless the user explicitly selects an API/Web surface.
+Application/platform projects produced from this intent may add their own API
+and web validation. This upstream-client repository has no OpenAPI or web build
+to validate.
 
 ## Future extensions
 

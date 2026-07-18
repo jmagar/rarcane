@@ -1,6 +1,7 @@
 use serde_json::json;
 
-use super::{parse_args_from, usage, Command, SetupCommand};
+use super::{parse_args_from, run, usage, Command, SetupCommand};
+use crate::config::ArcaneConfig;
 
 #[test]
 fn empty_args_returns_none() {
@@ -80,6 +81,17 @@ fn help_accepts_domain() {
 fn status_subcommand() {
     let cmd = parse_args_from(["status"]).unwrap().unwrap();
     assert_eq!(cmd, Command::Status);
+}
+
+#[tokio::test]
+async fn local_status_and_help_do_not_require_upstream_credentials() {
+    let config = ArcaneConfig::default();
+    run(Command::Status, &config)
+        .await
+        .expect("local status should not construct a client");
+    run(Command::Help { domain: None }, &config)
+        .await
+        .expect("local help should not construct a client");
 }
 
 #[test]

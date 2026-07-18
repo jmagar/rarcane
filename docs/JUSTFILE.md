@@ -21,11 +21,8 @@ last_reviewed: "2026-05-15"
 |---|---|
 | `just dev` | Run HTTP MCP server on loopback in no-auth dev mode (`RARCANE_MCP_NO_AUTH=true`). |
 | `just mcp` | Run stdio MCP transport (`rarcane mcp`). |
-| `just greet` | Quick CLI smoke test. |
 | `just doctor` | Pre-flight environment/connectivity checks (`rarcane doctor`). |
 | `just build` / `just build-release` | Debug/release Rust builds. |
-| `just build-web` | Build static Next.js web assets (`apps/web/out`). |
-| `just build-full` | Build web assets then release binary (CI use). |
 | `just gen-token` | Generate a random bearer token (`openssl rand -hex 32`). |
 
 ## Quality gates

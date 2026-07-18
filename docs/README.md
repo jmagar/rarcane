@@ -40,8 +40,8 @@ This directory contains focused guides for operating, adapting, testing, and rel
 
 | Doc | Covers |
 |---|---|
-| `API.md` | REST and HTTP endpoints. |
-| `WEB.md` | Optional static Next.js web UI. |
+| `API.md` | MCP/CLI action shape and public HTTP probe endpoints. |
+| `WEB.md` | Why this upstream-client server does not ship a web UI. |
 | `AUTH.md` | Auth policies and security model. |
 | `PLUGINS.md` | Claude/Codex/Gemini plugin packaging. |
 | `MCP_SCHEMA.md` | Generated MCP tool schema/action contract. |
@@ -51,7 +51,6 @@ This directory contains focused guides for operating, adapting, testing, and rel
 
 | Directory | Contents |
 |---|---|
-| `generated/` | Machine-produced artefacts committed for CI/API compatibility (e.g. `openapi.json`). |
 | `contracts/` | Durable JSON Schema and rarcane compatibility contracts. |
 | `specs/` | Design specs and handoff documents for MCP-only wizard flows. |
 | `sessions/` | Saved session notes and agent handoff records. |

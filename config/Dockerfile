@@ -22,14 +22,18 @@
 # TEMPLATE: Pin to a digest for reproducible builds:
 #   docker pull rust:1.90-slim-bookworm
 #   docker inspect --format '{{index .RepoDigests 0}}' rust:1.90-slim-bookworm
-FROM rust:1.96-slim-bookworm AS builder
+FROM rust:1.96-slim-bookworm@sha256:e18a79fc84dfcfc3ab5ba72290398a644c135c97eaa881447fddc354ee4701a3 AS builder
 
 WORKDIR /app
 
 # Install build dependencies.
 # pkg-config and libssl-dev are needed for openssl-sys (used by reqwest/lab-auth).
 # TEMPLATE: Add other system deps your crates need (e.g. libpq-dev for postgres).
-RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      pkg-config=1.8.1-1 \
+      libssl-dev=3.0.20-1~deb12u2 && \
+    rm -rf /var/lib/apt/lists/*
 
 # ── Dependency caching layer ──────────────────────────────────────────────────
 # Copy only Cargo manifests first and build a stub binary. This lets Docker/
@@ -63,7 +67,7 @@ RUN --mount=type=cache,id=rarcane-cargo-registry,target=/usr/local/cargo/registr
 # Pinned to bookworm-slim 2026-05-15 — update quarterly with:
 #   docker pull debian:bookworm-slim
 #   docker inspect --format '{{index .RepoDigests 0}}' debian:bookworm-slim
-FROM debian:bookworm-slim
+FROM debian:bookworm-slim@sha256:7b140f374b289a7c2befc338f42ebe6441b7ea838a042bbd5acbfca6ec875818
 
 # Install runtime dependencies:
 #   ca-certificates — TLS certificate verification for outbound HTTPS calls
@@ -74,7 +78,10 @@ FROM debian:bookworm-slim
 #           statically linked). Alpine users: replace gosu with su-exec and update
 #           entrypoint.sh accordingly.
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates curl gosu && \
+    apt-get install -y --no-install-recommends \
+      ca-certificates=20230311+deb12u1 \
+      curl=7.88.1-10+deb12u15 \
+      gosu=1.14-1+b10 && \
     rm -rf /var/lib/apt/lists/*
 
 # TEMPLATE: Replace "rarcane" with your binary name in both COPY and target path.

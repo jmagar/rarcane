@@ -25,6 +25,7 @@ pub enum ValidationError {
     WrongType { field: String },
     InvalidPath { field: String },
     DestructiveConfirmationRequired { action: String, subaction: String },
+    OutOfRange { field: String, min: u64, max: u64 },
 }
 
 impl std::fmt::Display for ValidationError {
@@ -54,6 +55,9 @@ impl std::fmt::Display for ValidationError {
                 f,
                 "confirmation required for destructive operation {action}:{subaction}; re-run with params.confirm=true or CLI --confirm"
             ),
+            Self::OutOfRange { field, min, max } => {
+                write!(f, "`{field}` must be between {min} and {max}")
+            }
         }
     }
 }
@@ -63,6 +67,7 @@ impl std::error::Error for ValidationError {}
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ActionTransport {
     Any,
+    McpOnly,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -82,6 +87,7 @@ pub struct ActionSpec {
     pub transport: ActionTransport,
     pub requires_env: bool,
     pub id_label: Option<&'static str>,
+    pub required_params: &'static [&'static str],
     pub destructive: bool,
     pub long_running: bool,
     pub body: BodyMode,
@@ -100,8 +106,47 @@ impl ActionSpec {
     }
 }
 
+macro_rules! is_long_running {
+    ("build") => {
+        true
+    };
+    ("pull") => {
+        true
+    };
+    ("redeploy") => {
+        true
+    };
+    ("prune") => {
+        true
+    };
+    ("scan") => {
+        true
+    };
+    ("create-backup") => {
+        true
+    };
+    ("restore") => {
+        true
+    };
+    ("restore-files") => {
+        true
+    };
+    ("check-all") => {
+        true
+    };
+    ("check-batch") => {
+        true
+    };
+    ("sync") => {
+        true
+    };
+    ($other:tt) => {
+        false
+    };
+}
+
 macro_rules! spec {
-    ($action:literal, $sub:literal, $method:literal, $path:literal, $scope:ident, env=$env:literal, id=$id:expr, destructive=$destructive:literal, body=$body:ident) => {
+    ($action:literal, $sub:tt, $method:literal, $path:literal, $scope:ident, env=$env:literal, id=$id:expr, params=$params:expr, destructive=$destructive:literal, body=$body:ident) => {
         ActionSpec {
             action: $action,
             subaction: Some($sub),
@@ -111,8 +156,25 @@ macro_rules! spec {
             transport: ActionTransport::Any,
             requires_env: $env,
             id_label: $id,
+            required_params: $params,
             destructive: $destructive,
-            long_running: false,
+            long_running: is_long_running!($sub),
+            body: BodyMode::$body,
+        }
+    };
+    ($action:literal, $sub:tt, $method:literal, $path:literal, $scope:ident, env=$env:literal, id=$id:expr, destructive=$destructive:literal, body=$body:ident) => {
+        ActionSpec {
+            action: $action,
+            subaction: Some($sub),
+            method: $method,
+            path: $path,
+            required_scope: Some($scope),
+            transport: ActionTransport::Any,
+            requires_env: $env,
+            id_label: $id,
+            required_params: &[],
+            destructive: $destructive,
+            long_running: is_long_running!($sub),
             body: BodyMode::$body,
         }
     };
@@ -128,6 +190,7 @@ pub const ACTION_SPECS: &[ActionSpec] = &[
         transport: ActionTransport::Any,
         requires_env: false,
         id_label: None,
+        required_params: &[],
         destructive: false,
         long_running: false,
         body: BodyMode::None,
@@ -141,6 +204,35 @@ pub const ACTION_SPECS: &[ActionSpec] = &[
         transport: ActionTransport::Any,
         requires_env: false,
         id_label: None,
+        required_params: &[],
+        destructive: false,
+        long_running: false,
+        body: BodyMode::None,
+    },
+    ActionSpec {
+        action: "elicit_name",
+        subaction: None,
+        method: "GET",
+        path: "",
+        required_scope: Some(READ_SCOPE),
+        transport: ActionTransport::McpOnly,
+        requires_env: false,
+        id_label: None,
+        required_params: &[],
+        destructive: false,
+        long_running: false,
+        body: BodyMode::None,
+    },
+    ActionSpec {
+        action: "scaffold_intent",
+        subaction: None,
+        method: "GET",
+        path: "",
+        required_scope: Some(READ_SCOPE),
+        transport: ActionTransport::McpOnly,
+        requires_env: false,
+        id_label: None,
+        required_params: &[],
         destructive: false,
         long_running: false,
         body: BodyMode::None,
@@ -647,7 +739,8 @@ pub const ACTION_SPECS: &[ActionSpec] = &[
         "/environments/{envId}/backups/{backupId}",
         WRITE_SCOPE,
         env = true,
-        id = Some("backupId"),
+        id = None,
+        params = &["backupId"],
         destructive = true,
         body = None
     ),
@@ -659,6 +752,7 @@ pub const ACTION_SPECS: &[ActionSpec] = &[
         WRITE_SCOPE,
         env = true,
         id = Some("volume"),
+        params = &["backupId"],
         destructive = true,
         body = None
     ),
@@ -670,6 +764,7 @@ pub const ACTION_SPECS: &[ActionSpec] = &[
         WRITE_SCOPE,
         env = true,
         id = Some("volume"),
+        params = &["backupId"],
         destructive = true,
         body = ParamsWithoutControl
     ),
@@ -1002,35 +1097,37 @@ pub fn action_names() -> Vec<&'static str> {
 }
 
 pub fn is_known_action(action: &str) -> bool {
-    action_names().contains(&action)
+    ACTION_SPECS.iter().any(|spec| spec.action == action)
 }
 
 pub fn required_scope_for_action(action: &str) -> Option<&'static str> {
-    let mut matches = ACTION_SPECS
+    required_scope_for(action, None)
+}
+
+pub fn required_scope_for(action: &str, subaction: Option<&str>) -> Option<&'static str> {
+    ACTION_SPECS
         .iter()
-        .filter(|spec| spec.action == action)
-        .peekable();
-    if matches.peek().is_none() {
-        return Some(DENY_SCOPE);
-    }
-    matches
-        .filter_map(|spec| spec.required_scope)
-        .max_by_key(|scope| if *scope == WRITE_SCOPE { 1 } else { 0 })
+        .find(|spec| spec.action == action && spec.subaction == subaction)
+        .map(|spec| spec.required_scope)
+        .unwrap_or(Some(DENY_SCOPE))
 }
 
 pub fn spec_for(action: &str, subaction: Option<&str>) -> Result<&'static ActionSpec> {
-    if action == "help" {
-        return Ok(&ACTION_SPECS[0]);
+    if let Some(spec) = ACTION_SPECS
+        .iter()
+        .find(|spec| spec.action == action && spec.subaction == subaction)
+    {
+        return Ok(spec);
     }
-    let subaction = subaction.ok_or_else(|| ValidationError::MissingSubaction {
-        action: action.to_owned(),
-    })?;
     if !is_known_action(action) {
         return Err(ValidationError::UnknownAction {
             action: action.to_owned(),
         }
         .into());
     }
+    let subaction = subaction.ok_or_else(|| ValidationError::MissingSubaction {
+        action: action.to_owned(),
+    })?;
     ACTION_SPECS
         .iter()
         .find(|spec| spec.action == action && spec.subaction == Some(subaction))

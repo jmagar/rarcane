@@ -10,12 +10,13 @@ Run all CI checks locally in the same order as `.github/workflows/ci.yml`. Stops
 
 | Step | Tool | Skipped if absent |
 |---|---|---|
-| 1/6 | `cargo fmt --check` | — |
-| 2/6 | `cargo clippy -- -D warnings` | — |
-| 3/6 | `cargo nextest run --profile ci` | falls back to `cargo test` |
-| 4/6 | `taplo check` | yes |
-| 5/6 | `cargo xtask patterns` | — |
-| 6/6 | `cargo audit` | yes |
+| 1/7 | `cargo fmt --check` | — |
+| 2/7 | `cargo clippy -- -D warnings` | — |
+| 3/7 | `cargo nextest run --profile ci` | falls back to `cargo test` |
+| 4/7 | `taplo check` | yes |
+| 5/7 | `cargo xtask patterns` | — |
+| 6/7 | `cargo xtask check-test-siblings` | — |
+| 7/7 | `cargo audit` | yes |
 
 ```bash
 cargo xtask ci
@@ -81,7 +82,7 @@ just patterns-strict
 just patterns-json
 ```
 
-The checker enforces required files, modern Rust module layout (`no mod.rs`), thin MCP/CLI shims, CLI/API/MCP/web surface-thinness heuristics, action schema/help/test/CLI surface drift, plugin manifest version rules, binary-owned plugin hook constraints, auth/config basics, route presence, and tooling hooks.
+The checker enforces required files, modern Rust module layout (`no mod.rs`), thin MCP/CLI shims, MCP surface heuristics, action schema/help/test/CLI surface drift, plugin manifest version rules, binary-owned plugin hook constraints, auth/config basics, route presence, and tooling hooks. File reads and directory traversal fail closed.
 
 File-size target overages are warnings until they exceed a hard limit, so existing borderline modules do not block unrelated work. Use `--strict` to fail on warnings for newly adapted servers or cleanup branches. Use `--json` for machine-readable output in dashboards or CI annotations.
 
@@ -103,7 +104,7 @@ Arcane output:
 [OK]      RARCANE_MCP_TOKEN   — Static bearer token for MCP auth
 [MISSING] RARCANE_API_KEY     — Upstream service API key (required)
 
-Error: 1 required variable(s) missing. Copy .env.rarcane to .env and fill in the values.
+Error: 1 required variable(s) missing. Copy .env.example to .env and fill in the values.
 ```
 
 **TEMPLATE**: Update `REQUIRED_VARS` and `OPTIONAL_VARS` in `xtask/src/main.rs` for your service. The template ships with no required variables (the stub works without credentials).

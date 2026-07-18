@@ -25,40 +25,68 @@ def read(path: Path) -> str:
 
 
 def extract_actions() -> list[str]:
-    text = read(ACTION_RS)
-    return re.findall(r'name:\s*"([^"]+)"', text)
+    return list(extract_scope_for_actions())
 
 
 def extract_scope_for_actions() -> dict[str, str]:
     text = read(ACTION_RS)
-    entries = re.findall(r"ActionSpec\s*\{(.*?)\}", text, re.S)
-    scopes: dict[str, str] = {}
+    registry = text.split("pub const ACTION_SPECS", 1)[1].split("\n];", 1)[0]
+    raw_scopes: dict[str, set[str]] = {}
+    entries = re.findall(r"ActionSpec\s*\{(.*?)\}", registry, re.S)
     for entry in entries:
-        name_match = re.search(r'name:\s*"([^"]+)"', entry)
+        name_match = re.search(r'action:\s*"([^"]+)"', entry)
         scope_match = re.search(r"required_scope:\s*([^,\n]+)", entry)
         if not name_match or not scope_match:
             continue
         name = name_match.group(1)
         scope_expr = scope_match.group(1).strip()
         if scope_expr == "None":
-            scopes[name] = "public"
+            raw_scopes.setdefault(name, set()).add("public")
         elif scope_expr == "Some(READ_SCOPE)":
-            scopes[name] = "`rarcane:read`"
+            raw_scopes.setdefault(name, set()).add("read")
         elif scope_expr == "Some(WRITE_SCOPE)":
-            scopes[name] = "`rarcane:write`"
+            raw_scopes.setdefault(name, set()).add("write")
         else:
-            scopes[name] = "`rarcane:__deny__`"
+            raw_scopes.setdefault(name, set()).add("deny")
+    for action, scope in re.findall(
+        r'spec!\(\s*"([^"]+)"\s*,\s*"[^"]+"\s*,.*?\b(READ_SCOPE|WRITE_SCOPE)\b',
+        registry,
+        re.S,
+    ):
+        raw_scopes.setdefault(action, set()).add("read" if scope == "READ_SCOPE" else "write")
+
+    scopes: dict[str, str] = {}
+    for action, values in raw_scopes.items():
+        if values == {"public"}:
+            scopes[action] = "public"
+        elif values == {"read"}:
+            scopes[action] = "`rarcane:read`"
+        elif values == {"write"}:
+            scopes[action] = "`rarcane:write`"
+        elif values <= {"read", "write"}:
+            scopes[action] = "`rarcane:read` / `rarcane:write`"
+        else:
+            scopes[action] = "`rarcane:__deny__`"
     return scopes
 
 
 def action_description(action: str) -> str:
     descriptions = {
-        "greet": "Return a greeting. Optional `name` string.",
-        "echo": "Echo a required `message` string.",
-        "status": "Return server status and configuration summary.",
-        "elicit_name": "Ask the MCP client to elicit a name and return a personalized greeting.",
-        "scaffold_intent": "Elicit scaffold requirements and return JSON for the scaffold-project skill. Does not mutate files.",
+        "status": "Return local server status without contacting Arcane.",
         "help": "Return the in-tool action reference. Public; no scope required.",
+        "elicit_name": "Ask the MCP client for a name and return a greeting.",
+        "scaffold_intent": "Collect scaffold requirements and return a side-effect-free handoff contract.",
+        "environment": "List, inspect, test, create, update, and delete Arcane environments.",
+        "project": "List, inspect, deploy, build, and manage Arcane projects.",
+        "container": "List, inspect, start, stop, restart, update, and remove containers.",
+        "image": "List, inspect, pull, prune, scan, and remove images.",
+        "network": "List, inspect, create, prune, and remove networks.",
+        "volume": "List, inspect, browse, back up, restore, create, prune, and remove volumes.",
+        "system": "Retrieve system information and run supported system operations.",
+        "image-update": "Check image update status and summaries.",
+        "vulnerability": "Inspect, ignore, and unignore vulnerability findings.",
+        "registry": "List, inspect, test, create, update, and delete registries.",
+        "gitops": "List, inspect, browse, sync, create, update, and delete GitOps entries.",
     }
     return descriptions.get(action, "TEMPLATE: document this action.")
 
@@ -117,13 +145,11 @@ def render() -> str:
             "",
             "| Prompt | Source | Contract |",
             "|---|---|---|",
-            "| `quick_start` | `src/mcp/prompts.rs` | Guides a client to call `status` and `greet`. |",
+            "| `quick_start` | `src/mcp/prompts.rs` | Guides a client to call `status` and public `help`. |",
             "",
             "## Input Validation",
             "",
             "- `action` is always required.",
-            "- `echo` conditionally requires non-empty `message`.",
-            "- `greet` accepts optional `name` and defaults to World.",
             "- `elicit_name` and `scaffold_intent` collect their extra fields through MCP elicitation, not direct tool-call arguments.",
             "- Unknown top-level parameters are rejected by the schema.",
             "",
@@ -137,7 +163,7 @@ def check_mentions(actions: list[str]) -> list[str]:
     surfaces = {
         "README.md": read(README),
         "plugins/rarcane/skills/rarcane/SKILL.md": read(SKILL),
-        "src/mcp/tools.rs HELP_TEXT": read(TOOLS_RS),
+        "src/actions.rs registry/help": read(ACTION_RS),
     }
     for label, text in surfaces.items():
         for action in actions:
@@ -161,8 +187,6 @@ def check_scope(actions: list[str]) -> list[str]:
         failures.append("src/mcp/schemas.rs must derive action enum from action_names()")
     if '"additionalProperties": false' not in schema_text:
         failures.append("src/mcp/schemas.rs must reject unknown top-level properties")
-    if '"const": "echo"' not in schema_text or '"required": ["message"]' not in schema_text:
-        failures.append("src/mcp/schemas.rs must conditionally require message for echo")
     rmcp_server_text = read(RMCP_SERVER_RS)
     if "rarcane://schema/mcp-tool" not in rmcp_server_text or "tool_definitions()" not in rmcp_server_text:
         failures.append("src/mcp/rmcp_server.rs must expose the schema resource from tool_definitions()")

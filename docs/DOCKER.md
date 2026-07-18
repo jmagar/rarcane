@@ -57,9 +57,9 @@ RUN groupadd --gid 1000 rarcane && \
     mkdir -p /data && chown rarcane:rarcane /data
 
 USER 1000:1000
-EXPOSE 40060/tcp
+EXPOSE 40110/tcp
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD curl -sf http://localhost:40060/health || exit 1
+  CMD curl -sf http://localhost:40110/health || exit 1
 CMD ["rarcane", "serve", "mcp"]
 ```
 
@@ -79,13 +79,13 @@ services:
       - path: .env
         required: false
     ports:
-      - "${RARCANE_MCP_HOST_PORT:-40060}:40060/tcp"
+      - "${RARCANE_MCP_HOST_PORT:-40110}:40110/tcp"
     volumes:
       - ${HOME}/.rarcane:/data
     networks:
       - mcp
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:40060/health || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:40110/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3

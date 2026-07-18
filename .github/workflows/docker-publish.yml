@@ -1,81 +1,104 @@
-# =============================================================================
-# .github/workflows/docker-publish.yml — Build and publish Docker image
-#
-# TEMPLATE substitutions required:
-#   REPO_NAME    → your GitHub repo name (e.g. "myservice-mcp")
-#   IMAGE_NAME   → your Docker image name (e.g. "myservice-mcp")
-#   BINARY_NAME  → your binary name from Cargo.toml [[bin]] (e.g. "myservice")
-#   PORT         → your service port (e.g. 6970 for unraid, 9158 for gotify)
-#
-# Replace every occurrence of "rmcp-template", "example-mcp", and "example"
-# in this file with your actual values.
-#
-# Triggers:
-#   - push to main → builds and pushes :latest tag
-#   - push of v* tag → builds and pushes :<version> tag + GitHub Release assets
-#
-# Registry: ghcr.io/jmagar/<IMAGE_NAME>
-# TEMPLATE: Replace "jmagar" with your GitHub org/username.
-# =============================================================================
-
 name: Docker Publish
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
+  push:
     tags: ["v*"]
 
 env:
-  # TEMPLATE: Replace "jmagar/example-mcp" with "your-org/your-image-name"
-  IMAGE_NAME: ghcr.io/jmagar/example-mcp
+  IMAGE_NAME: ghcr.io/jmagar/arcane-rmcp
 
 jobs:
-  docker:
-    name: Build & Push Docker image
+  ci-gate:
+    name: Require successful CI
+    if: ${{ github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.0
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+      - name: Test tagged source
+        if: github.event_name == 'push'
+        run: cargo test --locked
+
+  scan:
+    name: Build and scan image
+    needs: ci-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.0
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.0.0
+      - name: Build scan candidate without publishing
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.0.0
+        with:
+          context: .
+          file: config/Dockerfile
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: ${{ env.IMAGE_NAME }}:scan-${{ github.run_id }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Run Trivy
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a0b350d16c55eb73629 # 0.31.0
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:scan-${{ github.run_id }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
+      - name: Upload Trivy results
+        if: ${{ always() && hashFiles('trivy-results.sarif') != '' }}
+        uses: github/codeql-action/upload-sarif@eec0bff2f6c15bf3f1e8a0152f94d17664a06a06 # v4.37.0
+        with:
+          sarif_file: trivy-results.sarif
+
+  publish:
+    name: Publish verified image
+    needs: scan
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
       contents: read
       packages: write
-
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Set up QEMU (for multi-platform builds)
-        uses: docker/setup-qemu-action@v4
-
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.0
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+      - uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.0.0
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.0.0
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.0.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      # Determine the Docker tags to push:
-      #   main branch  → :latest
-      #   v1.2.3 tag   → :1.2.3 AND :latest
       - name: Docker metadata
         id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.0.0
         with:
-          # TEMPLATE: Replace "example-mcp" with your image name.
           images: ${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      # Multi-platform build and push.
-      # TEMPLATE: Remove linux/arm64 from platforms if you only need amd64.
-      - name: Build and push
-        uses: docker/build-push-action@v7
+            type=raw,value=latest,enable=${{ github.event_name == 'workflow_run' }}
+      - name: Build and push verified image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.0.0
         with:
           context: .
-          # TEMPLATE: Dockerfile lives at config/Dockerfile.
           file: config/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
@@ -83,32 +106,3 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  # ── Trivy vulnerability scan ─────────────────────────────────────────────────
-  trivy:
-    name: Trivy Vulnerability Scan
-    needs: docker
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      security-events: write
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Run Trivy
-        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a0b350d16c55eb73629 # 0.31.0
-        with:
-          # TEMPLATE: Replace with your image name.
-          image-ref: ghcr.io/jmagar/example-mcp:latest
-          format: sarif
-          output: trivy-results.sarif
-          severity: CRITICAL,HIGH
-          exit-code: "1"
-          ignore-unfixed: true
-
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: trivy-results.sarif

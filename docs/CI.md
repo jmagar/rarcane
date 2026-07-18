@@ -35,7 +35,6 @@ Runs on push/PR to main:
 - `fmt`: `cargo fmt -- --check`
 - `clippy`: `cargo clippy -- -D warnings`
 - `test`: `cargo nextest run --profile ci`
-- `web`: `pnpm install --frozen-lockfile`, `pnpm audit`, `pnpm lint`, `pnpm build`
 - `toml`: `taplo check`
 - `deny`: `cargo deny check`
 - `gitleaks`: secret scanning
@@ -52,9 +51,9 @@ Runs on push to main + tags:
 ### `.github/workflows/release.yml`
 
 Runs on version tags (`v*`):
-- Build release binaries for linux/amd64 and linux/arm64
-- Create GitHub Release with binary assets
-- Update `install.sh` download URLs
+- Build release binaries for Linux x86_64 and Windows x86_64
+- Publish archives plus SHA-256 files and build attestations
+- Publish the matching npm launcher after release assets succeed
 
 ## nextest configuration
 
@@ -119,7 +118,8 @@ Large artifacts are blocked unless allowlisted in `scripts/blob-size-allowlist.t
 
 Version tags (`v*`) trigger the release workflow, which builds release binaries and attaches them to the GitHub Release. The release workflow must **not** push generated binaries back to `main`. Local `just dist` / `cargo xtask dist` recipes are operator conveniences for preparing artifacts — they are not a CI write-back path.
 
-Binary naming convention: `<service>-<version>-<arch>-unknown-linux-musl.tar.gz` (e.g. `rarcane-v0.2.0-x86_64-unknown-linux-musl.tar.gz`).
+Current archive names are `rarcane-x86_64.tar.gz` and
+`rarcane-windows-x86_64.tar.gz`; each has a sibling `.sha256` file.
 
 ## CHANGELOG.md
 

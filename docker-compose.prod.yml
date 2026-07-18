@@ -35,7 +35,7 @@ services:
   arcane-rmcp:
     <<: *common-service
     # TEMPLATE: Replace with your image path.
-    image: ghcr.io/your-org/rarcane-mcp:${RARCANE_MCP_VERSION:-latest}
+    image: ghcr.io/jmagar/arcane-rmcp:${RARCANE_MCP_VERSION:-latest}
     container_name: arcane-rmcp
     env_file:
       - path: .env
@@ -44,7 +44,8 @@ services:
       RARCANE_MCP_HOST: 0.0.0.0
       RARCANE_MCP_PORT: "40110"
       RARCANE_MCP_SERVER_NAME: arcane-rmcp
-      RARCANE_NOAUTH: "true"
+      RARCANE_MCP_NO_AUTH: "${RARCANE_MCP_NO_AUTH:-false}"
+      RARCANE_MCP_TOKEN: "${RARCANE_MCP_TOKEN:?set RARCANE_MCP_TOKEN to a strong bearer token}"
     ports:
       - "${RARCANE_MCP_HOST_PORT:-40110}:40110/tcp"
     volumes:

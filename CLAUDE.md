@@ -17,11 +17,10 @@ A reusable Rust template for building MCP servers with the rmcp crate. The binar
 
 | File | Role |
 |------|------|
-| `src/rarcane.rs` | `ArcaneClient` — HTTP/API transport stub; one method per remote operation |
+| `src/arcane.rs` | `ArcaneClient` — authenticated Arcane HTTP transport |
 | `src/app.rs` | `ArcaneService` — business layer; all logic lives here, never in shims |
 | `src/server.rs` | `AppState`, `AuthPolicy`, `build_auth_layer` — HTTP server state and auth policy |
 | `src/server/routes.rs` | Axum router: `/mcp`, `/health`, `/status`, OAuth discovery routes |
-| `src/api.rs` | REST API handlers: `POST /v1/rarcane`, `GET /health`, `GET /status` |
 | `src/mcp.rs` | MCP protocol layer — re-exports from `mcp/` submodules |
 | `src/mcp/tools.rs` | MCP shim: parse JSON args → call service → return `Value` |
 | `src/mcp/schemas.rs` | Tool JSON schema derived from `ACTION_SPECS` |
@@ -50,7 +49,7 @@ If you find yourself computing, filtering, transforming, or validating data in `
 
 ## How to add an action (4-file checklist)
 
-1. **`src/rarcane.rs`** — add `pub async fn your_action(&self, ...) -> Result<Value>` with the actual HTTP/API call (or stub).
+1. **`src/arcane.rs`** — add transport behavior when an action needs a distinct upstream request path.
 
 2. **`src/app.rs`** — add a delegating method: `pub async fn your_action(&self, ...) -> Result<Value> { self.client.your_action(...).await }`.
 
@@ -143,9 +142,8 @@ with no CLI analogue.
 
 | Service Method | MCP Action | CLI Command | Notes |
 |---|---|---|---|
-| `service.greet(name)` | `rarcane(action="greet", name="...")` | `rarcane greet [--name N]` | `name` optional in both |
-| `service.echo(message)` | `rarcane(action="echo", message="...")` | `rarcane echo --message <msg>` | `message` required in both |
 | `service.status()` | `rarcane(action="status")` | `rarcane status` | |
+| `service.dispatch(action)` | `rarcane(action="container", subaction="list", ...)` | `rarcane call --action container --subaction list ...` | Generic Arcane action parity |
 | _(MCP client interaction)_ | `rarcane(action="elicit_name")` | _(MCP-only — no CLI equivalent)_ | Requires elicitation-capable client |
 | _(MCP elicitation wizard)_ | `rarcane(action="scaffold_intent")` | _(MCP-only — no CLI equivalent)_ | Combines elicitation + skill handoff; no one-shot CLI equivalent |
 | _(built-in)_ | `rarcane(action="help")` | `rarcane --help` | MCP returns structured JSON; CLI prints usage |

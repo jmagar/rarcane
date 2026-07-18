@@ -55,7 +55,7 @@ Only required when `RARCANE_MCP_AUTH_MODE=oauth`:
 | `PUID` | UID to run the container as (default: 1000). |
 | `PGID` | GID to run the container as (default: 1000). |
 | `DOCKER_NETWORK` | Docker network name (default: `mcp`). |
-| `VERSION` | Image tag to pull (default: `latest`). |
+| `RARCANE_MCP_VERSION` | Image tag to pull (default: `latest`). |
 
 ## Logging
 
@@ -88,7 +88,8 @@ RUST_LOG=info
 
 ## Safety
 
-`.env` and `.env.*` are ignored by `.gitignore` and blocked by `scripts/block-env-commits.sh`. Only `.env.rarcane` belongs in git.
+`.env` and secret-bearing `.env.*` files are ignored and blocked from commits.
+Use the tracked `.env.example` only as a placeholder template.
 
 Non-secret settings (host, port, auth mode, TTLs) go in `config.toml`, not `.env`. See `docs/CONFIG.md` for the full split.
 

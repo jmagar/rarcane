@@ -232,7 +232,7 @@ arguments.
 | MCP stdio | Supported | `rarcane mcp`, `npx -y arcane-rmcp mcp` | Local child-process MCP clients. |
 | MCP HTTP | Supported | `rarcane serve`, `POST /mcp` | Streamable HTTP MCP for local or shared server deployments. |
 | CLI | Supported | `rarcane <command>` | Scriptable parity and debugging. |
-| Prompt | Supported | `quick_start` | Guides a client through `status` and project listing. |
+| Prompt | Supported | `quick_start` | Guides a client through `status` and public `help`. |
 | Resource | Supported | `rarcane://schema/mcp-tool` | JSON schema for the `arcane` tool. |
 | REST API | Not shipped | N/A | Arcane already owns the REST API. |
 | Web UI | Not shipped | N/A | Arcane already owns the web UI. |
@@ -246,6 +246,8 @@ most domains, a required `subaction`.
 |---|---|---|
 | `help` | action reference or domain-specific help | public |
 | `status` | local bridge and Arcane config status | `rarcane:read` |
+| `elicit_name` | MCP elicitation demonstration | `rarcane:read` |
+| `scaffold_intent` | side-effect-free scaffold planning handoff | `rarcane:read` |
 | `environment` | `list`, `get`, `create`, `update`, `delete`, `test` | read/write |
 | `project` | `list`, `get`, `create`, `up`, `down`, `restart`, `pull`, `destroy`, `redeploy`, `build` | read/write |
 | `container` | `list`, `get`, `create`, `start`, `stop`, `restart`, `update`, `delete`, `stats` | read/write |
@@ -338,6 +340,10 @@ HTTP MCP auth policy:
 
 OAuth mode uses the `RARCANE_MCP_*` Google OAuth variables documented in
 `docs/CONFIG.md`.
+
+OAuth mode is single-replica: client/session state and signing keys are local to
+one host. Do not run multiple OAuth replicas until those stores are externalized
+or safely shared.
 
 ## Safety And Trust Model
 

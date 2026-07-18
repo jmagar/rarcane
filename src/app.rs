@@ -88,11 +88,7 @@ impl ArcaneService {
 
     /// Return local server status without leaking Arcane topology or credentials.
     pub async fn status(&self) -> Result<Value> {
-        Ok(json!({
-            "status": "ok",
-            "server": "rarcane",
-            "upstream": "arcane",
-        }))
+        Ok(local_status())
     }
 
     pub async fn dispatch(&self, action: &ArcaneAction) -> Result<Value> {
@@ -215,20 +211,7 @@ fn validate_request(spec: &crate::actions::ActionSpec, action: &ArcaneAction) ->
         .into());
     }
     if let Some(label) = spec.id_label {
-        if label == "backupId" {
-            let Some(value) = action.params.get("backupId").and_then(Value::as_str) else {
-                return Err(ValidationError::MissingId {
-                    label: "backupId".into(),
-                }
-                .into());
-            };
-            if value.is_empty() {
-                return Err(ValidationError::MissingId {
-                    label: "backupId".into(),
-                }
-                .into());
-            }
-        } else if action.id.as_deref().unwrap_or_default().is_empty() {
+        if action.id.as_deref().unwrap_or_default().is_empty() {
             if spec.action == "environment" {
                 // Preserve TypeScript prior art: environment single-resource ops accept envId fallback.
                 if action.env_id.as_deref().unwrap_or_default().is_empty() {
@@ -243,6 +226,19 @@ fn validate_request(spec: &crate::actions::ActionSpec, action: &ArcaneAction) ->
                 }
                 .into());
             }
+        }
+    }
+    for field in spec.required_params {
+        let present = action
+            .params
+            .get(*field)
+            .and_then(Value::as_str)
+            .is_some_and(|value| !value.is_empty());
+        if !present {
+            return Err(ValidationError::MissingId {
+                label: (*field).into(),
+            }
+            .into());
         }
     }
     if matches!(
@@ -311,12 +307,50 @@ fn query_params(spec: &crate::actions::ActionSpec, action: &ArcaneAction) -> Res
         return Ok(None);
     }
     let mut query = serde_json::Map::new();
+    if is_paginated(spec) {
+        query.insert(
+            "offset".into(),
+            Value::from(pagination_value(&action.params, "offset", 0, u64::MAX)?),
+        );
+        query.insert(
+            "limit".into(),
+            Value::from(pagination_value(&action.params, "limit", 50, 200)?),
+        );
+    }
     for key in ["offset", "limit", "sort_order", "query", "path", "imageRef"] {
+        if matches!(key, "offset" | "limit") && is_paginated(spec) {
+            continue;
+        }
         if let Some(value) = action.params.get(key) {
             query.insert(key.to_string(), value.clone());
         }
     }
     Ok((!query.is_empty()).then_some(Value::Object(query)))
+}
+
+fn is_paginated(spec: &crate::actions::ActionSpec) -> bool {
+    matches!(
+        spec.subaction,
+        Some("list" | "browse" | "list-backups" | "list-ignored")
+    )
+}
+
+fn pagination_value(params: &Value, field: &str, default: u64, max: u64) -> Result<u64> {
+    let Some(value) = params.get(field) else {
+        return Ok(default);
+    };
+    let value = value.as_u64().ok_or_else(|| ValidationError::WrongType {
+        field: field.into(),
+    })?;
+    if value > max {
+        return Err(ValidationError::OutOfRange {
+            field: field.into(),
+            min: 0,
+            max,
+        }
+        .into());
+    }
+    Ok(value)
 }
 
 fn body_params(mode: BodyMode, params: &Value) -> Option<Value> {
@@ -370,6 +404,18 @@ fn help_value(domain: Option<&str>) -> Value {
         "summary": rest_help(),
         "actions": actions,
     })
+}
+
+pub fn local_status() -> Value {
+    json!({
+        "status": "ok",
+        "server": "rarcane",
+        "upstream": "arcane",
+    })
+}
+
+pub fn local_help(domain: Option<&str>) -> Value {
+    help_value(domain)
 }
 
 fn validate_scaffold_intent(input: &ScaffoldIntent) -> Result<()> {

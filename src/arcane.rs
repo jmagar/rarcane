@@ -1,8 +1,10 @@
 use std::time::Duration;
 
-use anyhow::{Context, Result};
 use reqwest::Method;
 use serde_json::Value;
+use std::sync::Arc;
+use thiserror::Error;
+use tokio::sync::Semaphore;
 
 use crate::config::ArcaneConfig;
 
@@ -15,24 +17,64 @@ pub struct ArcaneClient {
     http: reqwest::Client,
     base_url: String,
     api_key: String,
+    permits: Arc<Semaphore>,
+}
+
+pub const MAX_UPSTREAM_RESPONSE_BYTES: usize = 8 * 1024 * 1024;
+const MAX_CONCURRENT_UPSTREAM_REQUESTS: usize = 16;
+
+#[derive(Debug, Error)]
+pub enum ArcaneError {
+    #[error("configuration error: {0}")]
+    Config(&'static str),
+    #[error("failed to build Arcane HTTP client")]
+    Build(#[source] reqwest::Error),
+    #[error("Arcane API transport failed")]
+    Transport(#[source] reqwest::Error),
+    #[error("Arcane API response exceeds {limit} bytes")]
+    ResponseTooLarge { limit: usize },
+    #[error("Arcane API error {status}: {message}")]
+    Http {
+        status: reqwest::StatusCode,
+        message: String,
+    },
+    #[error("Arcane API returned invalid JSON")]
+    Decode(#[source] serde_json::Error),
+    #[error("Arcane request concurrency limiter is closed")]
+    ConcurrencyClosed,
+}
+
+impl ArcaneError {
+    pub fn status(&self) -> Option<reqwest::StatusCode> {
+        match self {
+            Self::Http { status, .. } => Some(*status),
+            _ => None,
+        }
+    }
+
+    pub fn is_retryable(&self) -> bool {
+        matches!(self, Self::Transport(error) if error.is_timeout() || error.is_connect())
+            || self.status().is_some_and(|status| status.is_server_error())
+    }
 }
 
 impl ArcaneClient {
-    pub fn new(cfg: &ArcaneConfig) -> Result<Self> {
+    pub fn new(cfg: &ArcaneConfig) -> Result<Self, ArcaneError> {
         if cfg.api_url.trim().is_empty() {
-            anyhow::bail!("RARCANE_API_URL is not set");
+            return Err(ArcaneError::Config("RARCANE_API_URL is not set"));
         }
         if cfg.api_key.trim().is_empty() {
-            anyhow::bail!("RARCANE_API_KEY is not set");
+            return Err(ArcaneError::Config("RARCANE_API_KEY is not set"));
         }
         let http = reqwest::ClientBuilder::new()
             .timeout(Duration::from_secs(30))
             .build()
-            .context("failed to build Arcane HTTP client")?;
+            .map_err(ArcaneError::Build)?;
         Ok(Self {
             http,
             base_url: normalize_base_url(&cfg.api_url),
             api_key: cfg.api_key.clone(),
+            permits: Arc::new(Semaphore::new(MAX_CONCURRENT_UPSTREAM_REQUESTS)),
         })
     }
 
@@ -43,7 +85,12 @@ impl ArcaneClient {
         query: Option<&Value>,
         body: Option<&Value>,
         timeout: Option<Duration>,
-    ) -> Result<Value> {
+    ) -> Result<Value, ArcaneError> {
+        let _permit = self
+            .permits
+            .acquire()
+            .await
+            .map_err(|_| ArcaneError::ConcurrencyClosed)?;
         let url = format!("{}{}", self.base_url, path);
         let mut request = self
             .http
@@ -59,16 +106,27 @@ impl ArcaneClient {
             request = request.json(body);
         }
 
-        let response = request.send().await.map_err(|err| {
-            anyhow::anyhow!("Arcane API request failed: {}", redact(&err.to_string()))
-        })?;
+        let mut response = request.send().await.map_err(ArcaneError::Transport)?;
         let status = response.status();
-        let text = response
-            .text()
-            .await
-            .map_err(|err| anyhow::anyhow!("Arcane API response read failed: {err}"))?;
+        if response
+            .content_length()
+            .is_some_and(|length| length > MAX_UPSTREAM_RESPONSE_BYTES as u64)
+        {
+            return Err(ArcaneError::ResponseTooLarge {
+                limit: MAX_UPSTREAM_RESPONSE_BYTES,
+            });
+        }
+        let mut bytes = Vec::new();
+        while let Some(chunk) = response.chunk().await.map_err(ArcaneError::Transport)? {
+            if bytes.len().saturating_add(chunk.len()) > MAX_UPSTREAM_RESPONSE_BYTES {
+                return Err(ArcaneError::ResponseTooLarge {
+                    limit: MAX_UPSTREAM_RESPONSE_BYTES,
+                });
+            }
+            bytes.extend_from_slice(&chunk);
+        }
         if !status.is_success() {
-            let message = serde_json::from_str::<Value>(&text)
+            let message = serde_json::from_slice::<Value>(&bytes)
                 .ok()
                 .and_then(|value| {
                     value
@@ -77,13 +135,16 @@ impl ArcaneClient {
                         .or_else(|| value.get("error").and_then(Value::as_str))
                         .map(str::to_owned)
                 })
-                .unwrap_or_else(|| text.clone());
-            anyhow::bail!("Arcane API error {}: {}", status.as_u16(), redact(&message));
+                .unwrap_or_else(|| String::from_utf8_lossy(&bytes).into_owned());
+            return Err(ArcaneError::Http {
+                status,
+                message: redact(&message),
+            });
         }
-        if text.trim().is_empty() {
+        if bytes.iter().all(u8::is_ascii_whitespace) {
             return Ok(Value::Null);
         }
-        serde_json::from_str(&text).with_context(|| "Arcane API returned invalid JSON")
+        serde_json::from_slice(&bytes).map_err(ArcaneError::Decode)
     }
 }
 

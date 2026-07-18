@@ -49,7 +49,7 @@ check "Claude plugin has no version field" "test \"\$(jq -er 'has(\"version\")' 
 check "Claude plugin keeps MCP config external" "jq -er 'has(\"mcpServers\") | not' '${CLAUDE_PLUGIN_JSON}'"
 check "Claude plugin keeps hooks config external" "jq -er 'has(\"hooks\") | not' '${CLAUDE_PLUGIN_JSON}'"
 check "Claude plugin points to skills directory" "test \"\$(jq -er '.skills' '${CLAUDE_PLUGIN_JSON}')\" = './skills'"
-check "Claude plugin declares server_url userConfig" "jq -er '.userConfig.server_url.default == \"http://localhost:40060\"' '${CLAUDE_PLUGIN_JSON}'"
+check "Claude plugin declares server_url userConfig" "jq -er '.userConfig.server_url.default == \"http://localhost:40110\"' '${CLAUDE_PLUGIN_JSON}'"
 check "Claude plugin declares api_token as sensitive" "jq -er '.userConfig.api_token.sensitive == true' '${CLAUDE_PLUGIN_JSON}'"
 check "Claude plugin declares no_auth toggle" "jq -er '.userConfig.no_auth.type == \"boolean\"' '${CLAUDE_PLUGIN_JSON}'"
 check "Claude plugin declares auth_mode default" "jq -er '.userConfig.auth_mode.default == \"bearer\"' '${CLAUDE_PLUGIN_JSON}'"
@@ -74,14 +74,12 @@ check "Gemini Authorization header uses api_token" "jq -er '.mcpServers.rarcane.
 check "MCP config exists" "test -f '${MCP_JSON}'"
 check "MCP config is valid JSON" "jq empty '${MCP_JSON}'"
 check "MCP server is named rarcane" "jq -er '.mcpServers.rarcane' '${MCP_JSON}'"
-check "MCP transport is HTTP" "jq -er '.mcpServers.rarcane.type == \"http\"' '${MCP_JSON}'"
-check "MCP URL uses server_url and /mcp path" "jq -er '.mcpServers.rarcane.url == \"\${user_config.server_url}/mcp\"' '${MCP_JSON}'"
-check "MCP Authorization header uses api_token" "jq -er '.mcpServers.rarcane.headers.Authorization == \"Bearer \${user_config.api_token}\"' '${MCP_JSON}'"
+check "MCP transport uses the npm stdio launcher" "jq -er '.mcpServers.rarcane.command == \"npx\" and .mcpServers.rarcane.args == [\"-y\", \"arcane-rmcp\", \"mcp\"]' '${MCP_JSON}'"
 
 check "hooks config exists" "test -f '${HOOKS_JSON}'"
 check "hooks config is valid JSON" "jq empty '${HOOKS_JSON}'"
-check "SessionStart runs plugin setup" "jq -er '.hooks.SessionStart[]?.hooks[]?.command == \"\${CLAUDE_PLUGIN_ROOT}/scripts/plugin-setup.sh\"' '${HOOKS_JSON}'"
-check "ConfigChange runs plugin setup" "jq -er '.hooks.ConfigChange[]? | select(.matcher == \"user_settings\") | .hooks[]?.command == \"\${CLAUDE_PLUGIN_ROOT}/scripts/plugin-setup.sh\"' '${HOOKS_JSON}'"
+check "SessionStart runs binary plugin setup" "jq -er '.hooks.SessionStart[]?.hooks[]?.command == \"\${CLAUDE_PLUGIN_ROOT}/bin/rarcane setup plugin-hook\"' '${HOOKS_JSON}'"
+check "ConfigChange runs binary plugin setup" "jq -er '.hooks.ConfigChange[]? | select(.matcher == \"user_settings\") | .hooks[]?.command == \"\${CLAUDE_PLUGIN_ROOT}/bin/rarcane setup plugin-hook\"' '${HOOKS_JSON}'"
 
 check "skills directory exists" "test -d '${SKILLS_DIR}'"
 

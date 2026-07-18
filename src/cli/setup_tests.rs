@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use super::{SetupCommand, SetupReport};
+use super::{unique_env_temp_path, SetupCommand, SetupReport};
 use crate::config::{ArcaneConfig, Config, McpConfig};
 
 static ENV_LOCK: Mutex<()> = Mutex::new(());
@@ -175,4 +175,12 @@ fn dotenv_values_quote_special_characters_and_escape_quotes() {
 fn dotenv_values_reject_newlines() {
     let error = super::dotenv_assignment("RARCANE_API_KEY", "line\nbreak").unwrap_err();
     assert!(error.to_string().contains("newlines"));
+}
+
+#[test]
+fn repair_temp_paths_are_unique() {
+    let dir = tempfile::tempdir().unwrap();
+    let first = unique_env_temp_path(dir.path());
+    let second = unique_env_temp_path(dir.path());
+    assert_ne!(first, second);
 }

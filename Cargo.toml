@@ -16,7 +16,7 @@ resolver = "2"
 
 [package]
 name = "rarcane"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2021"
 rust-version = "1.90"
 categories = ["command-line-utilities", "development-tools"]
@@ -32,7 +32,7 @@ path = "src/main.rs"
 
 [dependencies]
 # Async runtime
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal", "sync", "time"] }
 
 # HTTP / MCP transport
 axum = "0.8"
@@ -45,6 +45,7 @@ rmcp = { version = "1.7.0", default-features = false, features = [
   "schemars",
 ] }
 tower-http = { version = "0.7", features = ["cors", "limit", "trace"] }
+tower = { version = "0.5", features = ["limit"] }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
@@ -52,7 +53,7 @@ serde_json = "1"
 schemars = "1.2.1"
 
 # Time
-chrono = { version = "0.4", features = ["serde"] }
+chrono = "0.4"
 
 # Config
 toml = "1.1"
@@ -66,7 +67,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 
 # HTTP client (stub — replace with your real transport: GraphQL, REST, gRPC, etc.)
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "query", "rustls"] }
 
 # Platform dirs — for default_data_dir() (~/.rarcane detection)
 # TEMPLATE: Used in config.rs default_data_dir(). Keep this dep.
@@ -74,6 +75,7 @@ dirs = "6"
 
 # Errors
 anyhow = "1"
+thiserror = "2"
 dotenvy = "0.15.7"
 
 [features]

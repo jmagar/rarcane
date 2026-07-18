@@ -27,12 +27,11 @@ New servers from this template should be easy to understand, audit, and extend �
 
 ## Thin shims, rich service layer
 
-MCP, REST, and CLI code should parse inputs and delegate. Validation, transformation, and business decisions belong in `ArcaneService`:
+MCP and CLI code should parse inputs and delegate. Validation, transformation, and business decisions belong in `ArcaneService`:
 
 ```
 MCP shim   → parse JSON args     → service.method()  → return Value
 CLI shim   → parse argv          → service.method()  → format/print
-REST shim  → parse HTTP body     → service.method()  → return JSON
 ```
 
 Zero business logic in shims. If you're writing validation in `mcp/tools.rs`, move it to `app.rs`.
@@ -59,8 +58,8 @@ Error messages must be correctable: state what failed, the bad value, why it fai
 ## Tests prove meaning
 
 A good test proves the returned data is correct. Examples:
-- `echo` must return the exact message.
-- `greet(name="Alice")` must include the name `Alice` in the response.
+- `status` must return the documented local status shape.
+- A container list request must use the expected Arcane path and pagination.
 - Resource tests must inspect schema content, not just check that `resources/read` returned HTTP 200.
 
 A test that only checks `is_error: false` proves nothing about the service.

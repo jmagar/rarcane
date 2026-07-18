@@ -38,14 +38,14 @@ just test-mcporter
 {
   "mcpServers": {
     "rarcane": {
-      "url": "http://localhost:40060/mcp",
+      "url": "http://localhost:40110/mcp",
       "transport": "http"
     }
   }
 }
 ```
 
-The script targets `http://<RARCANE_MCP_HOST>:<RARCANE_MCP_PORT>/mcp`, defaulting to `http://localhost:40060/mcp` to match `just dev`. It remaps `0.0.0.0` to `localhost`. If `RARCANE_MCP_TOKEN` is set, it sends `Authorization: Bearer <token>`.
+The script targets `http://<RARCANE_MCP_HOST>:<RARCANE_MCP_PORT>/mcp`, defaulting to `http://localhost:40110/mcp` to match the server default. It remaps `0.0.0.0` to `localhost`. If `RARCANE_MCP_TOKEN` is set, it sends `Authorization: Bearer <token>`.
 
 ## What the test suite validates
 
