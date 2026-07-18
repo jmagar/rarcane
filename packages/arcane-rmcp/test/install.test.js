@@ -19,7 +19,10 @@ function temporaryDirectory(t) {
 async function server(t, handler) {
   const instance = http.createServer(handler);
   await new Promise((resolve) => instance.listen(0, "127.0.0.1", resolve));
-  t.after(() => instance.close());
+  t.after(() => {
+    instance.closeAllConnections();
+    instance.close();
+  });
   return `http://127.0.0.1:${instance.address().port}`;
 }
 

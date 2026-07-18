@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 "use strict";
 
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const https = require("node:https");
 const os = require("node:os");
@@ -13,6 +14,9 @@ const packageJsonPath = path.join(packageRoot, "package.json");
 const packageJson = readJson(packageJsonPath);
 const releaseMode = process.argv.includes("--release");
 const skipReleaseAssets = process.argv.includes("--skip-release-assets");
+const releaseAssetsDirFlag = process.argv.indexOf("--release-assets-dir");
+const releaseAssetsDir = process.env.ARCANE_RMCP_RELEASE_ASSETS_DIR ||
+  (releaseAssetsDirFlag >= 0 ? process.argv[releaseAssetsDirFlag + 1] : "");
 
 const failures = [];
 
@@ -417,6 +421,27 @@ async function checkReleaseAssets() {
 
   const platform = require(platformPath);
   if (typeof platform.downloadUrl !== "function" || typeof platform.targetFor !== "function") {
+    return;
+  }
+
+  if (releaseAssetsDir) {
+    for (const { osName, arch, target } of supportedTargets(platform)) {
+      const archive = path.resolve(releaseAssetsDir, target.asset);
+      const checksum = `${archive}.sha256`;
+      assert(fs.existsSync(archive), `release asset missing for ${osName}/${arch}: ${archive}`);
+      assert(fs.existsSync(checksum), `release checksum missing for ${osName}/${arch}: ${checksum}`);
+      if (!fs.existsSync(archive) || !fs.existsSync(checksum)) {
+        continue;
+      }
+
+      const fields = fs.readFileSync(checksum, "utf8").trim().split(/\s+/);
+      const expected = fields[0] && fields[0].toLowerCase();
+      const listed = (fields[1] || "").replace(/^\*/, "");
+      const actual = crypto.createHash("sha256").update(fs.readFileSync(archive)).digest("hex");
+      assert(/^[a-f0-9]{64}$/.test(expected), `release checksum is invalid for ${target.asset}`);
+      assert(!listed || path.basename(listed) === target.asset, `release checksum names unexpected asset ${listed}`);
+      assert(actual === expected, `release checksum mismatch for ${target.asset}`);
+    }
     return;
   }
 
