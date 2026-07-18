@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
                Format: ## [X.Y.Z] — YYYY-MM-DD
                Use Added / Changed / Deprecated / Removed / Fixed / Security headers. -->
 
+## [0.4.4](https://github.com/jmagar/arcane-rmcp/compare/v0.4.3...v0.4.4) (2026-07-18)
+
+
+### Fixed
+
+* **release:** install Windows archive tool ([16d5873](https://github.com/jmagar/arcane-rmcp/commit/16d58738cc2db3137de2303bfbdebe6f85fc6e6d))
+* **release:** install Windows archive tool ([5e969ef](https://github.com/jmagar/arcane-rmcp/commit/5e969ef6fc87123e5d87006844f12824485ff4e4))
+* **release:** install Windows assembler ([361f045](https://github.com/jmagar/arcane-rmcp/commit/361f0458ca438df50606af92f451d1ee446028ee))
+* **release:** use draft owner token ([e07a3a2](https://github.com/jmagar/arcane-rmcp/commit/e07a3a2d54e001ee7470cdef5ffb3e399d63ba64))
+* **release:** use draft owner token ([0809d14](https://github.com/jmagar/arcane-rmcp/commit/0809d142ddbb8c3ad6bcf1c971f69c7659a48892))
+
 ## [0.4.3](https://github.com/jmagar/arcane-rmcp/compare/v0.4.2...v0.4.3) (2026-07-18)
 
 ### Fixed
