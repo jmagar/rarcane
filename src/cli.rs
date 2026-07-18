@@ -14,7 +14,7 @@
 
 use crate::{
     actions::ArcaneAction,
-    app::{local_help, local_status, ArcaneService},
+    app::{local_help, local_status, validate_service_action, ArcaneService},
     arcane::ArcaneClient,
     config::ArcaneConfig,
 };
@@ -188,6 +188,7 @@ pub async fn run(cmd: Command, cfg: &ArcaneConfig) -> Result<()> {
             id,
             params,
         } => {
+            validate_service_action(action, subaction.as_deref())?;
             let service = ArcaneService::new(ArcaneClient::new(cfg)?);
             service
                 .dispatch(&ArcaneAction {

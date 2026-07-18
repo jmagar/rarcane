@@ -113,7 +113,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Install taplo
-        uses: taiki-e/install-action@331d60e3cd3a5f0b2a2a3af0e98bace3c04e6a3b # v2.49.0
+        uses: taiki-e/install-action@07b4745e0c39a41822af610387492e3e53aa222b # v2.83.4
         with:
           tool: taplo-cli
 

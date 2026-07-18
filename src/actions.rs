@@ -22,6 +22,7 @@ pub enum ValidationError {
     MissingId { label: String },
     UnknownAction { action: String },
     UnknownSubaction { action: String, subaction: String },
+    McpOnlyAction { action: String },
     WrongType { field: String },
     InvalidPath { field: String },
     DestructiveConfirmationRequired { action: String, subaction: String },
@@ -46,6 +47,10 @@ impl std::fmt::Display for ValidationError {
             Self::UnknownSubaction { action, subaction } => write!(
                 f,
                 "unknown subaction `{subaction}` for action `{action}`; use action=help subaction={action}"
+            ),
+            Self::McpOnlyAction { action } => write!(
+                f,
+                "action `{action}` is MCP-only and requires an MCP peer"
             ),
             Self::WrongType { field } => write!(f, "`{field}` has the wrong type"),
             Self::InvalidPath { field } => {
@@ -1113,6 +1118,9 @@ pub fn required_scope_for(action: &str, subaction: Option<&str>) -> Option<&'sta
 }
 
 pub fn spec_for(action: &str, subaction: Option<&str>) -> Result<&'static ActionSpec> {
+    if action == "help" {
+        return Ok(&ACTION_SPECS[0]);
+    }
     if let Some(spec) = ACTION_SPECS
         .iter()
         .find(|spec| spec.action == action && spec.subaction == subaction)

@@ -80,3 +80,32 @@ fn schema_exposes_action_specific_subactions_and_requirements() {
         .iter()
         .any(|value| value == "backupId"));
 }
+
+#[test]
+fn environment_single_resource_schema_accepts_id_or_env_id() {
+    let rules = tool_definitions()[0]["inputSchema"]["allOf"]
+        .as_array()
+        .expect("conditional action rules");
+    let get = rules
+        .iter()
+        .find(|rule| {
+            rule["if"]["properties"]["action"]["const"] == "environment"
+                && rule["if"]["properties"]["subaction"]["const"] == "get"
+        })
+        .expect("environment:get rule");
+
+    let alternatives = get["then"]["anyOf"]
+        .as_array()
+        .expect("environment:get should accept either identifier field");
+    assert!(alternatives
+        .iter()
+        .any(|alternative| alternative["required"] == serde_json::json!(["id"])));
+    assert!(alternatives
+        .iter()
+        .any(|alternative| alternative["required"] == serde_json::json!(["envId"])));
+    assert!(!get["then"]["required"]
+        .as_array()
+        .expect("required fields")
+        .iter()
+        .any(|field| field == "id"));
+}

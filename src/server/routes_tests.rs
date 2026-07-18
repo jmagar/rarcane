@@ -4,7 +4,10 @@ use axum::{
 };
 use tower::ServiceExt;
 
-use super::{router, MAX_CONCURRENT_HTTP_REQUESTS, MCP_BODY_LIMIT_BYTES};
+use super::{
+    router, static_token_for_auth, with_mcp_concurrency_limit, MAX_CONCURRENT_HTTP_REQUESTS,
+    MCP_BODY_LIMIT_BYTES,
+};
 
 #[tokio::test]
 async fn health_is_served_without_auth() {
@@ -80,10 +83,78 @@ async fn bearer_auth_accepts_the_configured_token() {
 }
 
 #[test]
-fn http_concurrency_is_bounded() {
+fn mcp_concurrency_is_bounded() {
     let limit = std::hint::black_box(MAX_CONCURRENT_HTTP_REQUESTS);
     assert!(limit > 0);
     assert!(limit <= 32);
+}
+
+#[test]
+fn oauth_can_disable_or_retain_the_static_token() {
+    let mut config = crate::config::McpConfig {
+        api_token: Some("migration-token".into()),
+        auth: crate::config::AuthConfig {
+            mode: crate::config::AuthMode::OAuth,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+
+    assert_eq!(
+        static_token_for_auth(&config).as_deref(),
+        Some("migration-token"),
+        "OAuth and bearer should coexist by default"
+    );
+    config.auth.disable_static_token_with_oauth = true;
+    assert!(
+        static_token_for_auth(&config).is_none(),
+        "OAuth-only mode must not mount the static bearer token"
+    );
+}
+
+#[tokio::test]
+async fn mcp_concurrency_does_not_block_public_or_oauth_routes() {
+    let constrained_mcp = with_mcp_concurrency_limit(
+        axum::Router::new().route(
+            "/mcp",
+            axum::routing::get(|| async {
+                std::future::pending::<()>().await;
+                "unreachable"
+            }),
+        ),
+        1,
+    );
+    let app = constrained_mcp
+        .route("/health", axum::routing::get(super::health))
+        .route("/status", axum::routing::get(|| async { "status" }))
+        .route("/oauth/authorize", axum::routing::get(|| async { "oauth" }));
+
+    let blocked = tokio::spawn(
+        app.clone().oneshot(
+            Request::builder()
+                .uri("/mcp")
+                .body(Body::empty())
+                .expect("MCP request should build"),
+        ),
+    );
+    tokio::task::yield_now().await;
+
+    for path in ["/health", "/status", "/oauth/authorize"] {
+        let response = tokio::time::timeout(
+            std::time::Duration::from_millis(100),
+            app.clone().oneshot(
+                Request::builder()
+                    .uri(path)
+                    .body(Body::empty())
+                    .expect("public request should build"),
+            ),
+        )
+        .await
+        .unwrap_or_else(|_| panic!("{path} must not queue behind saturated MCP traffic"))
+        .unwrap_or_else(|error| panic!("{path} should respond: {error}"));
+        assert_eq!(response.status(), StatusCode::OK, "{path}");
+    }
+    blocked.abort();
 }
 
 #[tokio::test]
@@ -115,9 +186,7 @@ async fn oauth_token_enforces_read_and_write_action_scopes() {
         state.clone(),
         &token,
         serde_json::json!({
-            "action": "container",
-            "subaction": "list",
-            "envId": "test"
+            "action": "status"
         }),
     )
     .await;
@@ -125,7 +194,15 @@ async fn oauth_token_enforces_read_and_write_action_scopes() {
     let read_body = axum::body::to_bytes(read.into_body(), 64 * 1024)
         .await
         .expect("read response body");
-    assert!(!String::from_utf8_lossy(&read_body).contains("insufficient scope"));
+    let read_text = String::from_utf8_lossy(&read_body);
+    assert!(
+        read_text.contains(r#"\"status\":\"ok\""#),
+        "read-scoped token should execute the status action: {read_text}"
+    );
+    assert!(
+        !read_text.contains("forbidden") && !read_text.contains("requires scope"),
+        "read-scoped token was incorrectly forbidden: {read_text}"
+    );
 
     let write = mcp_call(
         state,

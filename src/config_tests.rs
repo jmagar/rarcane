@@ -181,3 +181,10 @@ fn config_rejects_unknown_fields() {
         .expect_err("unknown config keys must fail");
     assert!(error.to_string().contains("trusted_gatway"));
 }
+
+#[test]
+fn shipped_config_example_parses_under_strict_config() {
+    let config = toml::from_str::<Config>(include_str!("../config.example.toml"))
+        .expect("the shipped config example must remain parseable");
+    assert!(config.mcp.auth.disable_static_token_with_oauth);
+}

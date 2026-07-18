@@ -93,6 +93,13 @@ fn spec_lookup_rejects_unknown_subaction() {
 }
 
 #[test]
+fn help_accepts_a_domain_as_its_optional_subaction() {
+    let spec = spec_for("help", Some("container")).expect("scoped help should resolve");
+    assert_eq!(spec.action, "help");
+    assert_eq!(spec.subaction, None);
+}
+
+#[test]
 fn relative_path_validation_blocks_traversal() {
     assert!(validate_relative_path(&json!({"path": "etc/config"}), "path").is_ok());
     assert!(validate_relative_path(&json!({"path": "/etc"}), "path").is_err());

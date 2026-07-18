@@ -42,6 +42,21 @@ async fn help_does_not_call_upstream() {
 }
 
 #[tokio::test]
+async fn generic_service_dispatch_rejects_mcp_only_actions() {
+    let error = stub_service()
+        .dispatch(&ArcaneAction {
+            action: "elicit_name".into(),
+            subaction: None,
+            env_id: None,
+            id: None,
+            params: json!({}),
+        })
+        .await
+        .expect_err("generic service dispatch must not send MCP-only actions upstream");
+    assert!(error.to_string().contains("MCP-only"), "{error}");
+}
+
+#[tokio::test]
 async fn destructive_actions_require_boolean_confirm() {
     let _guard = DESTRUCTIVE_ENV_LOCK.lock().await;
     let previous = std::env::var_os("RARCANE_MCP_ALLOW_DESTRUCTIVE");

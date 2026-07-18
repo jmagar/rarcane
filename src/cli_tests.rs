@@ -1,6 +1,7 @@
 use serde_json::json;
 
 use super::{parse_args_from, run, usage, Command, SetupCommand};
+use crate::app::local_help;
 use crate::config::ArcaneConfig;
 
 #[test]
@@ -92,6 +93,31 @@ async fn local_status_and_help_do_not_require_upstream_credentials() {
     run(Command::Help { domain: None }, &config)
         .await
         .expect("local help should not construct a client");
+}
+
+#[tokio::test]
+async fn mcp_only_calls_are_rejected_before_client_construction() {
+    let error = run(
+        Command::Call {
+            action: "scaffold_intent".into(),
+            subaction: None,
+            env_id: None,
+            id: None,
+            params: json!({}),
+        },
+        &ArcaneConfig::default(),
+    )
+    .await
+    .expect_err("MCP-only actions should not be callable from the CLI");
+
+    assert!(error.to_string().contains("MCP-only"), "{error}");
+    assert!(!error.to_string().contains("RARCANE_API_URL"), "{error}");
+}
+
+#[test]
+fn help_marks_actions_that_require_an_mcp_peer() {
+    let help = local_help(Some("scaffold_intent"));
+    assert_eq!(help["actions"][0]["transport"], "mcp-only");
 }
 
 #[test]

@@ -98,13 +98,20 @@ fn action_rules() -> Vec<Value> {
         if spec.requires_env {
             required.push(Value::from("envId"));
         }
-        if spec.id_label.is_some() {
+        let environment_id_fallback = spec.action == "environment" && spec.id_label.is_some();
+        if spec.id_label.is_some() && !environment_id_fallback {
             required.push(Value::from("id"));
         }
         if !spec.required_params.is_empty() {
             required.push(Value::from("params"));
         }
         let mut then = json!({"required": required});
+        if environment_id_fallback {
+            then["anyOf"] = json!([
+                {"required": ["id"]},
+                {"required": ["envId"]}
+            ]);
+        }
         if !spec.required_params.is_empty() {
             then["properties"] = json!({
                 "params": {"required": spec.required_params}

@@ -92,6 +92,9 @@ impl McpConfig {
 #[serde(default, deny_unknown_fields)]
 pub struct AuthConfig {
     pub mode: AuthMode,
+    /// Disable the static bearer token when OAuth is active. This supports
+    /// migration periods where both mechanisms coexist without forcing them.
+    pub disable_static_token_with_oauth: bool,
     pub public_url: Option<String>,
     pub google_client_id: Option<String>,
     pub google_client_secret: Option<String>,
@@ -170,6 +173,7 @@ impl Default for AuthConfig {
     fn default() -> Self {
         Self {
             mode: AuthMode::default(),
+            disable_static_token_with_oauth: false,
             public_url: None,
             google_client_id: None,
             google_client_secret: None,

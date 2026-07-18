@@ -77,6 +77,10 @@ Checks changed git blobs against a size budget. Use `scripts/blob-size-allowlist
 ### `check-coupled-files.sh`
 
 ```bash
+# Local worktree, including uncommitted changes:
+scripts/check-coupled-files.sh origin/main
+
+# Stable committed range used by CI:
 scripts/check-coupled-files.sh origin/main HEAD
 just coupled-files-check
 ```

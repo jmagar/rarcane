@@ -6,6 +6,13 @@ INSTALL_DIR="${INSTALL_DIR:-${HOME}/.local/bin}"
 VERSION="${ARCANE_RMCP_VERSION:-latest}"
 RELEASE_BASE_URL="${ARCANE_RMCP_RELEASE_BASE_URL:-}"
 BINARY_NAME="rarcane"
+INSTALLER_TMPDIR=""
+
+cleanup_installer_tmpdir() {
+  if [[ -n "${INSTALLER_TMPDIR}" ]]; then
+    rm -rf -- "${INSTALLER_TMPDIR}"
+  fi
+}
 
 usage() {
   cat <<'USAGE'
@@ -101,12 +108,12 @@ main() {
   if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then usage; return 0; fi
   need curl; need install; need mktemp; need tar
 
-  local asset url tmpdir expected_entry binary
+  local asset url expected_entry binary
   asset="$(target_asset)"
   expected_entry="${BINARY_NAME}"
   [[ "${asset}" == *windows* ]] && expected_entry="${BINARY_NAME}.exe"
-  tmpdir="$(mktemp -d)"
-  trap 'rm -rf "${tmpdir}"' EXIT
+  INSTALLER_TMPDIR="$(mktemp -d)"
+  trap cleanup_installer_tmpdir EXIT
 
   if [[ -n "${RELEASE_BASE_URL}" ]]; then
     url="${RELEASE_BASE_URL%/}/${VERSION}/${asset}"
@@ -119,11 +126,11 @@ main() {
   mkdir -p "${INSTALL_DIR}"
   [[ -w "${INSTALL_DIR}" ]] || { printf 'error: install dir is not writable: %s\n' "${INSTALL_DIR}" >&2; return 1; }
   printf 'Downloading %s\n' "${url}" >&2
-  download_file "${url}" "${tmpdir}/${asset}"
-  download_file "${url}.sha256" "${tmpdir}/${asset}.sha256"
-  verify_checksum "${tmpdir}/${asset}" "${tmpdir}/${asset}.sha256"
-  extract_verified_binary "${tmpdir}/${asset}" "${tmpdir}" "${expected_entry}"
-  binary="${tmpdir}/${expected_entry}"
+  download_file "${url}" "${INSTALLER_TMPDIR}/${asset}"
+  download_file "${url}.sha256" "${INSTALLER_TMPDIR}/${asset}.sha256"
+  verify_checksum "${INSTALLER_TMPDIR}/${asset}" "${INSTALLER_TMPDIR}/${asset}.sha256"
+  extract_verified_binary "${INSTALLER_TMPDIR}/${asset}" "${INSTALLER_TMPDIR}" "${expected_entry}"
+  binary="${INSTALLER_TMPDIR}/${expected_entry}"
   install -m 755 "${binary}" "${INSTALL_DIR}/${BINARY_NAME}"
   printf 'Installed %s to %s/%s\n' "${BINARY_NAME}" "${INSTALL_DIR}" "${BINARY_NAME}"
 }

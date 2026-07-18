@@ -12,7 +12,8 @@ use serde_json::{json, Value};
 
 use crate::{
     actions::{
-        rest_help, spec_for, validate_relative_path, ArcaneAction, BodyMode, ValidationError,
+        rest_help, spec_for, validate_relative_path, ActionSpec, ActionTransport, ArcaneAction,
+        BodyMode, ValidationError,
     },
     arcane::{encode_path_segment, ArcaneClient},
 };
@@ -98,7 +99,7 @@ impl ArcaneService {
         if action.action == "status" {
             return self.status().await;
         }
-        let spec = spec_for(&action.action, action.subaction.as_deref())?;
+        let spec = validate_service_action(&action.action, action.subaction.as_deref())?;
         validate_request(spec, action)?;
         let path = build_path(spec.path, action)?;
         let query = query_params(spec, action)?;
@@ -200,6 +201,22 @@ impl ArcaneService {
             }
         }))
     }
+}
+
+/// Resolve an action that may be dispatched through the generic service/CLI path.
+/// MCP-only actions are handled separately by the peer-aware MCP adapter.
+pub fn validate_service_action(
+    action: &str,
+    subaction: Option<&str>,
+) -> Result<&'static ActionSpec> {
+    let spec = spec_for(action, subaction)?;
+    if spec.transport == ActionTransport::McpOnly {
+        return Err(ValidationError::McpOnlyAction {
+            action: action.to_owned(),
+        }
+        .into());
+    }
+    Ok(spec)
 }
 
 fn validate_request(spec: &crate::actions::ActionSpec, action: &ArcaneAction) -> Result<()> {
@@ -388,9 +405,14 @@ fn help_value(domain: Option<&str>) -> Value {
         .iter()
         .filter(|spec| domain.is_none_or(|domain| spec.action == domain))
         .map(|spec| {
+            let transport = match spec.transport {
+                ActionTransport::Any => "any",
+                ActionTransport::McpOnly => "mcp-only",
+            };
             json!({
                 "action": spec.action,
                 "subaction": spec.subaction,
+                "transport": transport,
                 "scope": spec.required_scope,
                 "destructive": spec.destructive,
                 "requiresEnvId": spec.requires_env,
