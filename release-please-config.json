@@ -70,6 +70,16 @@
         "packages/arcane-rmcp/package.json",
         {
           "type": "json",
+          "path": "packages/arcane-rmcp/package-lock.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/arcane-rmcp/package-lock.json",
+          "jsonpath": "$['packages'][''].version"
+        },
+        {
+          "type": "json",
           "path": "server.json",
           "jsonpath": "$.version"
         },

@@ -110,6 +110,7 @@ function checkMetadata() {
   }
 
   const serverJson = readJson(serverPath);
+  const packageLock = readJson(path.join(packageRoot, "package-lock.json"));
   const npmPackage = findNpmPackage(serverJson);
   const repoUrl = normalizeRepoUrl(packageJson.repository && packageJson.repository.url);
   const serverRepoUrl = normalizeRepoUrl(serverJson.repository && serverJson.repository.url);
@@ -130,6 +131,11 @@ function checkMetadata() {
   assert(repoUrl === serverRepoUrl, `package repository ${repoUrl} must match server.json repository ${serverRepoUrl}`);
   assert(homepage === serverWebsite, `package homepage ${homepage} must match server.json websiteUrl ${serverWebsite}`);
   assert(serverJson.version === packageJson.version, `package version ${packageJson.version} must match server.json version ${serverJson.version}`);
+  assert(packageLock.version === packageJson.version, "package-lock.json version must match package.json");
+  assert(
+    packageLock.packages && packageLock.packages[""] && packageLock.packages[""].version === packageJson.version,
+    "package-lock.json root package version must match package.json",
+  );
   assert(
     !packageJson.binaryVersion || packageJson.binaryVersion === packageJson.version,
     "package.json binaryVersion must be absent or match package version",
@@ -182,6 +188,11 @@ function checkReleasePleaseCoverage() {
       .filter((entry) => entry && entry.type === "json" && entry.path === "server.json")
       .map((entry) => entry.jsonpath),
   );
+  const packageLockPaths = new Set(
+    (Array.isArray(extraFiles) ? extraFiles : [])
+      .filter((entry) => entry && entry.type === "json" && entry.path === "packages/arcane-rmcp/package-lock.json")
+      .map((entry) => entry.jsonpath),
+  );
 
   for (const jsonpath of [
     "$.version",
@@ -190,6 +201,10 @@ function checkReleasePleaseCoverage() {
     "$['_meta']['io.modelcontextprotocol.registry/publisher-provided'].buildInfo.version",
   ]) {
     assert(serverJsonPaths.has(jsonpath), `release-please must update server.json at ${jsonpath}`);
+  }
+
+  for (const jsonpath of ["$.version", "$['packages'][''].version"]) {
+    assert(packageLockPaths.has(jsonpath), `release-please must update package-lock.json at ${jsonpath}`);
   }
 }
 

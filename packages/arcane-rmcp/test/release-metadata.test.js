@@ -39,3 +39,22 @@ test("release-please paths cover and transform every published version", () => {
   assert.equal(publisher.distribution.npm, `arcane-rmcp@${next}`);
   assert.equal(publisher.buildInfo.version, next);
 });
+
+test("release-please paths transform both npm lockfile versions", () => {
+  const config = JSON.parse(fs.readFileSync(path.join(repoRoot, "release-please-config.json"), "utf8"));
+  const lockfile = JSON.parse(fs.readFileSync(path.join(repoRoot, "packages/arcane-rmcp/package-lock.json"), "utf8"));
+  const paths = config.packages["."]["extra-files"]
+    .filter((entry) => entry && entry.type === "json" && entry.path === "packages/arcane-rmcp/package-lock.json")
+    .map((entry) => entry.jsonpath);
+  const next = "9.9.9";
+
+  for (const jsonpath of paths) {
+    const matches = JSONPath({ resultType: "all", path: jsonpath, json: lockfile });
+    assert.equal(matches.length, 1, `${jsonpath} must resolve exactly one lockfile target`);
+    const [payload] = matches;
+    payload.parent[payload.parentProperty] = next;
+  }
+
+  assert.equal(lockfile.version, next);
+  assert.equal(lockfile.packages[""].version, next);
+});
