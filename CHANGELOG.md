@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
                Format: ## [X.Y.Z] — YYYY-MM-DD
                Use Added / Changed / Deprecated / Removed / Fixed / Security headers. -->
 
+## [0.4.2](https://github.com/jmagar/arcane-rmcp/compare/v0.4.1...v0.4.2) (2026-07-18)
+
+
+### Fixed
+
+* address lavra review findings ([56d53d8](https://github.com/jmagar/arcane-rmcp/commit/56d53d84156839c15659d985209785c4c54dbac7))
+* migrate MCP models to rmcp 2.2 ([a65ed85](https://github.com/jmagar/arcane-rmcp/commit/a65ed8532baf070f77180c6b9f4416fd2bf72a2d))
+* remediate comprehensive repository review ([de496d1](https://github.com/jmagar/arcane-rmcp/commit/de496d104a632feedcec0818256ac9fa698f94a3))
+* remediate comprehensive review findings ([5e6398d](https://github.com/jmagar/arcane-rmcp/commit/5e6398d96560c8f498e42059cc937447d32aef92))
+* route rust builds through sccache wrapper ([e9ceeb1](https://github.com/jmagar/arcane-rmcp/commit/e9ceeb17e59d45a512ae66c7d930a63d86cacc14))
+* update vulnerable cmov dependency ([b6bda37](https://github.com/jmagar/arcane-rmcp/commit/b6bda37a9457ee34c6e2b579902189214fa4a7a0))
+* validate staged npm release assets ([1c5a787](https://github.com/jmagar/arcane-rmcp/commit/1c5a7877f26278b404168520ae00d662de698e2b))
+
 ## [Unreleased]
 
 ### Changed
