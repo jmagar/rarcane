@@ -25,6 +25,24 @@ Examples:
 {"action":"image","subaction":"pull","envId":"default","params":{"image":"alpine:latest"}}
 ```
 
+## Action Domains
+
+| Action | Subactions |
+|---|---|
+| `help` | optional domain-specific help |
+| `status` | local rarcane and upstream configuration status |
+| `environment` | `list`, `get`, `create`, `update`, `delete`, `test` |
+| `project` | `list`, `get`, `create`, `update`, `up`, `down`, `restart`, `pull`, `destroy`, `redeploy`, `build` |
+| `container` | `list`, `get`, `create`, `start`, `stop`, `restart`, `update`, `delete`, `stats` |
+| `image` | `list`, `get`, `pull`, `delete`, `prune`, `scan` |
+| `network` | `list`, `get`, `create`, `delete`, `prune` |
+| `volume` | `list`, `get`, `create`, `delete`, `prune`, `browse`, `backup-list`, `backup-create`, `backup-delete`, `backup-restore`, `backup-restore-files` |
+| `system` | `prune`, `containers-start-all`, `containers-stop-all`, `docker-info`, `convert` |
+| `image-update` | `check-all`, `check`, `check-batch`, `summary` |
+| `vulnerability` | `summary`, `list`, `scanner-status`, `ignore`, `unignore`, `list-ignored` |
+| `registry` | `list`, `get`, `create`, `update`, `delete`, `test` |
+| `gitops` | `list`, `get`, `create`, `update`, `delete`, `sync`, `status`, `browse` |
+
 ## CLI Parity
 
 ```bash

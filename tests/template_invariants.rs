@@ -39,11 +39,9 @@ fn portable_scripts_are_executable_and_documented() {
 }
 
 #[test]
-fn justfile_exposes_ported_automation_recipes() {
+fn justfile_exposes_automation_recipes() {
     let justfile = read("Justfile");
     for recipe in [
-        "install-tools:",
-        "bootstrap:",
         "install-hooks:",
         "uninstall-hooks:",
         "deps-check:",
@@ -67,6 +65,17 @@ fn justfile_exposes_ported_automation_recipes() {
     ] {
         assert!(justfile.contains(recipe), "Justfile missing {recipe}");
     }
+
+    assert!(
+        !justfile.contains("install-tools:") && !justfile.contains("bootstrap: install-tools"),
+        "development tools are provisioned globally by mise, not installed by project recipes"
+    );
+
+    let lefthook = read("lefthook.yml");
+    assert!(
+        lefthook.contains("mise install"),
+        "lefthook should direct missing-tool failures to the mise-managed toolchain"
+    );
 }
 
 #[test]

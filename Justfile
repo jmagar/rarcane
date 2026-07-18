@@ -4,7 +4,7 @@
 # TEMPLATE: Replace "rarcane" with your binary/service name throughout.
 #           Replace port 40060 with your service's port if different.
 #
-# Usage: just <recipe>   (install just: cargo install just)
+# Usage: just <recipe>
 # =============================================================================
 
 # List all available recipes
@@ -54,7 +54,6 @@ fmt-check:
     cargo fmt -- --check
 
 # Run the full test suite using cargo-nextest (faster, better output than cargo test)
-# Install nextest: cargo install cargo-nextest
 test:
     cargo nextest run
 
@@ -75,7 +74,7 @@ fix:
     cargo fmt
     cargo clippy --fix --all-targets --allow-dirty --allow-staged
 
-# Format all TOML files (requires taplo: cargo install taplo-cli)
+# Format all TOML files (requires taplo from mise)
 fmt-toml:
     taplo format
 
@@ -83,11 +82,11 @@ fmt-toml:
 check-toml:
     taplo check
 
-# Run license, vulnerability, and source checks (requires cargo-deny: cargo install cargo-deny)
+# Run license, vulnerability, and source checks (requires cargo-deny from mise)
 deny:
     cargo deny check
 
-# Watch Rust checks interactively (requires bacon: cargo install bacon)
+# Watch Rust checks interactively (requires bacon from mise)
 watch:
     bacon
 
@@ -195,24 +194,6 @@ symlink-docs-inline:
 # Validate required environment variables are set before starting the server.
 check-env:
     cargo xtask check-env
-
-# Install common development tools used by this Justfile
-install-tools:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if ! command -v cargo-binstall >/dev/null 2>&1; then
-        cargo install cargo-binstall
-    fi
-    cargo binstall cargo-nextest --quiet --no-confirm
-    cargo binstall taplo-cli --quiet --no-confirm
-    cargo binstall cargo-deny --quiet --no-confirm
-    cargo binstall bacon --quiet --no-confirm
-    cargo binstall cargo-llvm-cov --quiet --no-confirm
-    cargo binstall lefthook --quiet --no-confirm
-    cargo binstall cargo-audit --quiet --no-confirm
-
-# Alias for install-tools, matching the other Rust workspace convention
-bootstrap: install-tools
 
 # Install lefthook git hooks
 install-hooks:
@@ -384,7 +365,7 @@ generate-cli:
 # ── Publishing ────────────────────────────────────────────────────────────────
 
 # Bump the crate version using cargo-edit and regenerate Cargo.lock.
-# Requires cargo-edit: cargo install cargo-edit
+# Requires cargo-edit from mise
 bump-version version:
     cargo set-version {{version}}
     cargo generate-lockfile

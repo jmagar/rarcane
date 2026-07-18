@@ -2,7 +2,7 @@
 # lefthook.yml — Minimal pre-commit hooks
 #
 # TEMPLATE: Copy this file unchanged to any new server repo.
-#           Install: cargo install lefthook   OR   mise use lefthook
+#           Install the globally configured toolchain: mise install
 #           Enable:  lefthook install
 #
 # Philosophy (Pattern §30):
@@ -53,7 +53,7 @@ pre-commit:
     # TEMPLATE: Remove this hook if you don't use taplo.
     toml_fmt:
       glob: "*.toml"
-      run: taplo check {staged_files}
+      run: command -v taplo >/dev/null || { echo 'taplo is missing; run mise install' >&2; exit 1; }; taplo check {staged_files}
 
     # ── 3. env_guard ──────────────────────────────────────────────────────────
     # Prevents accidentally committing .env files containing real secrets.
