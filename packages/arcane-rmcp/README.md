@@ -450,21 +450,19 @@ gateway.
 
 ## Related Servers
 
-- `unifi-rmcp / rustifi` - UniFi controller REST API bridge.
-- `tailscale-rmcp / rustscale` - Tailscale API bridge for devices, users, and tailnet operations.
-- `unraid-rmcp / unrust` - Unraid GraphQL bridge for NAS and server management.
-- `apprise-rmcp` - Apprise notification fan-out bridge for many delivery backends.
-- `gotify-rmcp` - Gotify push notification bridge for sends, messages, apps, and clients.
-- `yarr-rmcp` - Media-stack bridge for Sonarr, Radarr, Prowlarr, Plex, and related services.
-- `ytdl-mcp` - Media download and metadata workflow server.
-- `synapse` - Local Synapse workflow server for scout and flux actions.
-- `cortex` - Syslog and homelab log aggregation MCP server.
-- `axon` - RAG, crawl, scrape, extract, and semantic search project.
-- `lab` - Homelab control plane and Labby gateway project.
-- `lumen` - Local semantic code search MCP server.
-- `nugs` - Project/package management helper for local agent workflows.
-- `agentcast` - Agent transcript and activity publishing project.
-- `soma` - RMCP scaffold/runtime template for new provider-backed servers.
+- [soma](https://github.com/jmagar/soma) - RMCP runtime for provider-backed MCP servers.
+- [unifi-rmcp](https://github.com/jmagar/unifi-rmcp) - UniFi controller REST API bridge.
+- [tailscale-rmcp](https://github.com/jmagar/tailscale-rmcp) - Tailscale API bridge for devices, users, and tailnet operations.
+- [unraid-rmcp](https://github.com/jmagar/unraid-rmcp) - Unraid GraphQL bridge for NAS and server management.
+- [apprise-rmcp](https://github.com/jmagar/apprise-rmcp) - Apprise notification fan-out bridge for many delivery backends.
+- [gotify-rmcp](https://github.com/jmagar/gotify-rmcp) - Gotify push notification bridge for sends, messages, apps, and clients.
+- [yarr](https://github.com/jmagar/yarr) - Media-stack bridge for Sonarr, Radarr, Prowlarr, Plex, and related services.
+- [ytdl-rmcp](https://github.com/jmagar/ytdl-rmcp) - Media download and metadata workflow server.
+- [synapse-rmcp](https://github.com/jmagar/synapse-rmcp) - Local Synapse workflow server for scout and flux actions.
+- [cortex](https://github.com/jmagar/cortex) - Syslog and homelab log aggregation MCP server.
+- [axon](https://github.com/jmagar/axon) - RAG, crawl, scrape, extract, and semantic search project.
+- [labby](https://github.com/jmagar/labby) - Homelab control plane and MCP gateway project.
+- [lumen](https://github.com/jmagar/lumen) - Local semantic code search MCP server.
 
 ## Documentation
 
