@@ -22,6 +22,7 @@ jobs:
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
+      source_ref: ${{ steps.release.outputs.sha }}
     permissions:
       contents: write
       pull-requests: write
@@ -48,4 +49,5 @@ jobs:
     uses: ./.github/workflows/release.yml
     with:
       tag_name: ${{ needs.release-please.outputs.tag_name }}
+      source_ref: ${{ needs.release-please.outputs.source_ref }}
     secrets: inherit

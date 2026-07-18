@@ -7,10 +7,17 @@ on:
         description: "Draft release tag to build and publish"
         required: true
         type: string
+      source_ref:
+        description: "Immutable commit to build and publish"
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       tag_name:
         description: "Draft release tag to build and publish, e.g. v0.4.0"
+        required: true
+      source_ref:
+        description: "Immutable commit to build and publish"
         required: true
 
 concurrency:
@@ -24,16 +31,27 @@ jobs:
     outputs:
       tag_name: ${{ steps.meta.outputs.tag_name }}
       release_name: ${{ steps.meta.outputs.release_name }}
+      source_ref: ${{ steps.meta.outputs.source_ref }}
     steps:
       - id: meta
         name: Resolve draft release
         shell: bash
+        env:
+          TAG_NAME: ${{ inputs.tag_name }}
+          SOURCE_REF: ${{ inputs.source_ref }}
         run: |
           set -euo pipefail
-          tag="${{ inputs.tag_name }}"
+          tag="$TAG_NAME"
+          source_ref="$SOURCE_REF"
           test -n "$tag" || { echo "::error::tag_name is required"; exit 1; }
-          echo "tag_name=${tag}" >> "$GITHUB_OUTPUT"
-          echo "release_name=rarcane ${tag}" >> "$GITHUB_OUTPUT"
+          test -n "$source_ref" || { echo "::error::source_ref is required"; exit 1; }
+          [[ "$tag" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || { echo "::error::tag_name must be a stable vMAJOR.MINOR.PATCH tag"; exit 1; }
+          [[ "$source_ref" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::source_ref must be a full commit SHA"; exit 1; }
+          {
+            echo "tag_name=${tag}"
+            echo "release_name=rarcane ${tag}"
+            echo "source_ref=${source_ref}"
+          } >> "$GITHUB_OUTPUT"
 
   build:
     needs: release-meta
@@ -58,7 +76,7 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6.0.0
         with:
-          ref: ${{ needs.release-meta.outputs.tag_name }}
+          ref: ${{ needs.release-meta.outputs.source_ref }}
       - name: Install pinned Rust toolchain
         uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4
         with:
@@ -131,7 +149,7 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6.0.0
         with:
-          ref: ${{ needs.release-meta.outputs.tag_name }}
+          ref: ${{ needs.release-meta.outputs.source_ref }}
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
@@ -140,6 +158,9 @@ jobs:
         with:
           path: dist/release-assets
           merge-multiple: true
+      - name: Install npm test dependencies
+        if: ${{ hashFiles('packages/arcane-rmcp/package-lock.json') != '' }}
+        run: npm ci --ignore-scripts --prefix packages/arcane-rmcp
       - name: Verify npm package version matches release tag
         id: npm-version
         shell: bash

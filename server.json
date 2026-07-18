@@ -3,7 +3,7 @@
   "name": "ai.dinglebear/arcane-rmcp",
   "title": "Arcane RMCP",
   "description": "Rust MCP server and CLI for Arcane Docker and container management.",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "websiteUrl": "https://github.com/jmagar/arcane-rmcp",
   "repository": {
     "url": "https://github.com/jmagar/arcane-rmcp",
@@ -25,7 +25,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "arcane-rmcp",
-      "version": "0.4.2",
+      "version": "0.4.3",
       "runtimeHint": "npx",
       "packageArguments": [
         {
@@ -60,7 +60,7 @@
           "format": "string",
           "isRequired": false,
           "isSecret": false,
-          "placeholder": "v0.4.1"
+          "placeholder": "vX.Y.Z"
         },
         {
           "name": "ARCANE_RMCP_REPO",
@@ -98,11 +98,11 @@
       "namespace": "ai.dinglebear",
       "dnsDomain": "dinglebear.ai",
       "distribution": {
-        "npm": "arcane-rmcp@0.4.2",
+        "npm": "arcane-rmcp@0.4.3",
         "nodePackage": "arcane-rmcp"
       },
       "buildInfo": {
-        "version": "0.4.2",
+        "version": "0.4.3",
         "repository": "https://github.com/jmagar/arcane-rmcp"
       }
     }

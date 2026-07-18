@@ -1,6 +1,6 @@
 {
   "name": "arcane-rmcp",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Node launcher for the Arcane Rust MCP server and rarcane CLI for Docker/container management.",
   "license": "MIT",
   "homepage": "https://github.com/jmagar/arcane-rmcp#readme",
@@ -54,9 +54,11 @@
     "stdio"
   ],
   "mcpName": "ai.dinglebear/arcane-rmcp",
-  "binaryVersion": "0.4.1",
   "author": {
     "name": "dinglebear.ai",
     "url": "https://dinglebear.ai"
+  },
+  "devDependencies": {
+    "jsonpath-plus": "^10.3.0"
   }
 }

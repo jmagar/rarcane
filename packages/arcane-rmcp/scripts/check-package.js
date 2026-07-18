@@ -110,6 +110,7 @@ function checkMetadata() {
   }
 
   const serverJson = readJson(serverPath);
+  const packageLock = readJson(path.join(packageRoot, "package-lock.json"));
   const npmPackage = findNpmPackage(serverJson);
   const repoUrl = normalizeRepoUrl(packageJson.repository && packageJson.repository.url);
   const serverRepoUrl = normalizeRepoUrl(serverJson.repository && serverJson.repository.url);
@@ -130,6 +131,15 @@ function checkMetadata() {
   assert(repoUrl === serverRepoUrl, `package repository ${repoUrl} must match server.json repository ${serverRepoUrl}`);
   assert(homepage === serverWebsite, `package homepage ${homepage} must match server.json websiteUrl ${serverWebsite}`);
   assert(serverJson.version === packageJson.version, `package version ${packageJson.version} must match server.json version ${serverJson.version}`);
+  assert(packageLock.version === packageJson.version, "package-lock.json version must match package.json");
+  assert(
+    packageLock.packages && packageLock.packages[""] && packageLock.packages[""].version === packageJson.version,
+    "package-lock.json root package version must match package.json",
+  );
+  assert(
+    !packageJson.binaryVersion || packageJson.binaryVersion === packageJson.version,
+    "package.json binaryVersion must be absent or match package version",
+  );
 
   if (npmPackage) {
     assert(npmPackage.identifier === packageJson.name, "server.json npm package identifier must match package name");
@@ -140,17 +150,22 @@ function checkMetadata() {
 
   const publisherMeta = serverJson._meta && serverJson._meta["io.modelcontextprotocol.registry/publisher-provided"];
   const distribution = publisherMeta && publisherMeta.distribution;
-  if (distribution) {
-    if (distribution.npm) {
-      assert(
-        distribution.npm === `${packageJson.name}@${packageJson.version}`,
-        `server.json distribution.npm must be ${packageJson.name}@${packageJson.version}`,
-      );
-    }
-    if (distribution.nodePackage) {
-      assert(distribution.nodePackage === packageJson.name, "server.json distribution.nodePackage must match package name");
-    }
-  }
+  const buildInfo = publisherMeta && publisherMeta.buildInfo;
+  assert(publisherMeta, "server.json must include publisher-provided metadata");
+  assert(distribution, "server.json publisher metadata must include distribution");
+  assert(
+    distribution && distribution.npm === `${packageJson.name}@${packageJson.version}`,
+    `server.json distribution.npm must be ${packageJson.name}@${packageJson.version}`,
+  );
+  assert(
+    distribution && distribution.nodePackage === packageJson.name,
+    "server.json distribution.nodePackage must match package name",
+  );
+  assert(buildInfo, "server.json publisher metadata must include buildInfo");
+  assert(
+    buildInfo && buildInfo.version === packageJson.version,
+    `server.json buildInfo.version must be ${packageJson.version}`,
+  );
 
   for (const keyword of ["mcp", "mcp-server", "model-context-protocol"]) {
     assert(Array.isArray(packageJson.keywords) && packageJson.keywords.includes(keyword), `package keywords must include ${keyword}`);
@@ -163,6 +178,34 @@ function checkMetadata() {
   assert(packageJson.scripts && packageJson.scripts.prepack === "node scripts/sync-readme.js", "package prepack must sync README/LICENSE files");
   assert(packageJson.scripts && packageJson.scripts.prepublishOnly === "node scripts/check-package.js --release", "package prepublishOnly must run the release gate");
   assert(packageJson.scripts && packageJson.scripts.check && packageJson.scripts.check.includes("node scripts/check-package.js"), "package check must run the package verifier");
+}
+
+function checkReleasePleaseCoverage() {
+  const config = readJson(path.join(repoRoot, "release-please-config.json"));
+  const extraFiles = config.packages && config.packages["."] && config.packages["."]["extra-files"];
+  const serverJsonPaths = new Set(
+    (Array.isArray(extraFiles) ? extraFiles : [])
+      .filter((entry) => entry && entry.type === "json" && entry.path === "server.json")
+      .map((entry) => entry.jsonpath),
+  );
+  const packageLockPaths = new Set(
+    (Array.isArray(extraFiles) ? extraFiles : [])
+      .filter((entry) => entry && entry.type === "json" && entry.path === "packages/arcane-rmcp/package-lock.json")
+      .map((entry) => entry.jsonpath),
+  );
+
+  for (const jsonpath of [
+    "$.version",
+    "$.packages[?(@.identifier == 'arcane-rmcp')].version",
+    "$['_meta']['io.modelcontextprotocol.registry/publisher-provided'].distribution.npm",
+    "$['_meta']['io.modelcontextprotocol.registry/publisher-provided'].buildInfo.version",
+  ]) {
+    assert(serverJsonPaths.has(jsonpath), `release-please must update server.json at ${jsonpath}`);
+  }
+
+  for (const jsonpath of ["$.version", "$['packages'][''].version"]) {
+    assert(packageLockPaths.has(jsonpath), `release-please must update package-lock.json at ${jsonpath}`);
+  }
 }
 
 function assertRuntimeScriptsDoNotEscapePackage() {
@@ -456,6 +499,7 @@ async function checkReleaseAssets() {
 async function main() {
   checkSyncedFiles();
   checkMetadata();
+  checkReleasePleaseCoverage();
   assertRuntimeScriptsDoNotEscapePackage();
 
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), `${packageJson.name}-package-check-`));

@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
                Format: ## [X.Y.Z] — YYYY-MM-DD
                Use Added / Changed / Deprecated / Removed / Fixed / Security headers. -->
 
+## [0.4.3](https://github.com/jmagar/arcane-rmcp/compare/v0.4.2...v0.4.3) (2026-07-18)
+
+### Fixed
+
+* Build draft releases from an explicit source commit instead of a tag that does not exist yet.
+* Keep npm, Cargo, and MCP registry versions synchronized and fail closed on drift.
+* **ci:** allow cold multi-arch image builds ([061b30b](https://github.com/jmagar/arcane-rmcp/commit/061b30bc10f6d1176672333830f450f2e721775e))
+* **ci:** repair invalid action pins ([5115543](https://github.com/jmagar/arcane-rmcp/commit/511554333f5b40f81e5937e192c2eb60f689d993))
+* **ci:** upgrade Trivy scanner action ([eddf4ca](https://github.com/jmagar/arcane-rmcp/commit/eddf4ca44fc72e73e57f6bfa43a5a092c1908294))
+* **docker:** isolate multi-arch cargo caches ([38e281a](https://github.com/jmagar/arcane-rmcp/commit/38e281a26476bf55a6f4b7b629a57a3cd2630784))
+
 ## [0.4.2](https://github.com/jmagar/arcane-rmcp/compare/v0.4.1...v0.4.2) (2026-07-18)
 
 
@@ -22,6 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * update vulnerable cmov dependency ([b6bda37](https://github.com/jmagar/arcane-rmcp/commit/b6bda37a9457ee34c6e2b579902189214fa4a7a0))
 * validate staged npm release assets ([1c5a787](https://github.com/jmagar/arcane-rmcp/commit/1c5a7877f26278b404168520ae00d662de698e2b))
 
+### Changed
+
+* Published the npm launcher at `0.4.2`.
+
 ## [Unreleased]
 
 ### Changed
@@ -30,13 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   architecture; removed stale REST, Web, and OpenAPI claims.
 - Pattern checks now fail closed on file-read and directory-traversal errors.
 - Corrected setup, deployment, observability, OAuth topology, and prompt guidance.
-
-## [0.4.2] — 2026-07-18
-
-### Changed
-
-- Published the npm launcher at `0.4.2`; it downloads the matching release
-  archive for supported platforms.
 
 ## [0.4.1] — 2026-07-18
 
