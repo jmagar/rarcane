@@ -52,7 +52,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Run Trivy
-        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a0b350d16c55eb73629 # 0.31.0
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6366cf37 # v0.31.0
         with:
           image-ref: ${{ env.IMAGE_NAME }}:scan-${{ github.run_id }}
           format: sarif
