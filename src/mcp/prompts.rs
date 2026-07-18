@@ -6,8 +6,7 @@
 //! **Template**: replace `quick_start` with prompts relevant to your domain.
 
 use rmcp::model::{
-    GetPromptRequestParams, GetPromptResult, ListPromptsResult, Prompt, PromptMessage,
-    PromptMessageRole,
+    GetPromptRequestParams, GetPromptResult, ListPromptsResult, Prompt, PromptMessage, Role,
 };
 
 pub(super) fn list_prompts() -> ListPromptsResult {
@@ -27,7 +26,7 @@ pub(super) fn list_prompts() -> ListPromptsResult {
 pub(super) fn get_prompt(request: GetPromptRequestParams) -> anyhow::Result<GetPromptResult> {
     match request.name.as_str() {
         "quick_start" => Ok(GetPromptResult::new(vec![PromptMessage::new_text(
-            PromptMessageRole::User,
+            Role::User,
             "Use the rarcane tool with action=status to check the server is running, \
              then use action=help to retrieve the public action reference. \
              Report back both results. Resource list operations require an envId.",

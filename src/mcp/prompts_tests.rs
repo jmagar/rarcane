@@ -20,9 +20,11 @@ fn get_prompt_quick_start_returns_message() {
         !result.messages.is_empty(),
         "prompt should have at least one message"
     );
-    let rmcp::model::PromptMessageContent::Text { text } = &result.messages[0].content else {
-        panic!("quick_start should be text")
-    };
+    let text = &result.messages[0]
+        .content
+        .as_text()
+        .expect("quick_start should be text")
+        .text;
     assert!(text.contains("action=status"));
     assert!(text.contains("action=help"));
     assert!(!text.contains("action=greet"));
