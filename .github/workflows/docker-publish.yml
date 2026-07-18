@@ -70,7 +70,9 @@ jobs:
     name: Publish verified image
     needs: scan
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # The ARM64 Rust release build runs under QEMU on GitHub's amd64 runner and
+    # can exceed an hour from a cold cache. Keep a bounded but realistic limit.
+    timeout-minutes: 90
     permissions:
       contents: read
       packages: write
