@@ -165,6 +165,25 @@ function checkMetadata() {
   assert(packageJson.scripts && packageJson.scripts.check && packageJson.scripts.check.includes("node scripts/check-package.js"), "package check must run the package verifier");
 }
 
+function checkReleasePleaseCoverage() {
+  const config = readJson(path.join(repoRoot, "release-please-config.json"));
+  const extraFiles = config.packages && config.packages["."] && config.packages["."]["extra-files"];
+  const serverJsonPaths = new Set(
+    (Array.isArray(extraFiles) ? extraFiles : [])
+      .filter((entry) => entry && entry.type === "json" && entry.path === "server.json")
+      .map((entry) => entry.jsonpath),
+  );
+
+  for (const jsonpath of [
+    "$.version",
+    "$.packages[0].version",
+    "$['_meta']['io.modelcontextprotocol.registry/publisher-provided'].distribution.npm",
+    "$['_meta']['io.modelcontextprotocol.registry/publisher-provided'].buildInfo.version",
+  ]) {
+    assert(serverJsonPaths.has(jsonpath), `release-please must update server.json at ${jsonpath}`);
+  }
+}
+
 function assertRuntimeScriptsDoNotEscapePackage() {
   const runtimeScripts = [packageJson.scripts && packageJson.scripts.postinstall].filter(Boolean);
   for (const script of runtimeScripts) {
@@ -454,9 +473,10 @@ async function checkReleaseAssets() {
 }
 
 async function main() {
-  checkSyncedFiles();
-  checkMetadata();
-  assertRuntimeScriptsDoNotEscapePackage();
+checkSyncedFiles();
+checkMetadata();
+checkReleasePleaseCoverage();
+assertRuntimeScriptsDoNotEscapePackage();
 
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), `${packageJson.name}-package-check-`));
   try {

@@ -67,7 +67,27 @@
       "component": "rustcane",
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
-        "packages/arcane-rmcp/package.json"
+        "packages/arcane-rmcp/package.json",
+        {
+          "type": "json",
+          "path": "server.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "server.json",
+          "jsonpath": "$.packages[0].version"
+        },
+        {
+          "type": "json",
+          "path": "server.json",
+          "jsonpath": "$['_meta']['io.modelcontextprotocol.registry/publisher-provided'].distribution.npm"
+        },
+        {
+          "type": "json",
+          "path": "server.json",
+          "jsonpath": "$['_meta']['io.modelcontextprotocol.registry/publisher-provided'].buildInfo.version"
+        }
       ]
     }
   }
