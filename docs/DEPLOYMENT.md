@@ -27,7 +27,7 @@ Every server binary exposes exactly two server modes and a CLI:
 |---|---|---|
 | `rarcane mcp` | stdio MCP | For Claude Code `~/.claude/settings.json` stdio servers |
 | `rarcane serve` | Streamable HTTP MCP | For Docker/remote deployment |
-| `rarcane [subcommand]` | CLI | Direct API access; all subcommands support `--json` |
+| `rarcane status`, `help`, `call` | CLI | Direct JSON access to the shared service layer |
 | `rarcane doctor` | Pre-flight check | Validates environment and config |
 | `rarcane --help` | Help | Print usage |
 | `rarcane --version` | Version | Print version |
@@ -39,7 +39,7 @@ Every server binary exposes exactly two server modes and a CLI:
    just verify
    scripts/pre-release-check.sh
    ```
-2. Create a `.env` from `.env.rarcane` and set real credentials.
+2. Create a `.env` from `.env.example` and set real credentials.
 3. Generate a bearer token:
    ```bash
    just gen-token
@@ -136,27 +136,14 @@ Each service in the rmcp family uses a fixed port to avoid collisions:
 | unifi-mcp (rustifi) | 7474 | `unifi` |
 | tailscale-mcp (rustscale) | 7575 | `tailscale` |
 | apprise-mcp | 8765 | `apprise` |
-| rarcane | 40060 | `rarcane` |
+| rarcane | 40110 | `rarcane` |
 
 Set the port via `RARCANE_MCP_PORT` or in `config.toml`. Update `EXPOSE` in the Dockerfile and the port mapping in `docker-compose.yml` to match.
 
-## Worktree file propagation
+## Worktree configuration
 
-Claude Code worktrees are fresh checkouts — gitignored files like `.env` and `config.toml` are absent by default. The `.worktreeinclude` file at the repo root tells Claude Code which gitignored files to copy into each new worktree automatically:
-
-```
-# .worktreeinclude
-.env
-config.toml
-```
-
-This ensures the server can start in a worktree without manual setup. Both files are one-way copied (main → worktree) at worktree creation time only.
-
-`.gitignore` additions required alongside `.worktreeinclude`:
-
-```gitignore
-config.toml
-.beagle/
-```
+Fresh worktrees do not contain ignored `.env` or `config.toml` files. Copy or
+recreate local configuration explicitly using your worktree tool's supported
+secret-handling workflow; this repository does not track a worktree-copy policy.
 
 See `docs/DOCKER.md`, `docs/SYSTEMD.md`, `docs/ENV.md`, and `docs/CONFIG.md` for deployment-specific details. See `docs/PATTERNS.md` §19, §27, §28, §46, §47, §A6 for port assignments, security, environment awareness, binary installation, and worktree patterns.

@@ -45,6 +45,15 @@ fn required_var_redacts_short_secrets() {
 }
 
 #[test]
+fn required_var_redacts_unicode_without_panicking() {
+    let secret = "abc\u{e9}secret";
+    let expected = "abc\u{e9}**** (set)";
+    let check = check_required_var("UNICODE_SECRET", secret);
+    assert!(check.ok);
+    assert_eq!(check.value.as_deref(), Some(expected));
+}
+
+#[test]
 fn required_var_redacts_long_secrets() {
     let check = check_required_var("KEY", "supersecrettoken");
     let value = check.value.unwrap();

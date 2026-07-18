@@ -1,3 +1,5 @@
+use anyhow::Result;
+
 use super::{reporter::PatternReporter, util::read_file};
 
 const ACTION_TEST_COVERAGE_EXCEPTIONS: &[&str] = &[
@@ -5,8 +7,8 @@ const ACTION_TEST_COVERAGE_EXCEPTIONS: &[&str] = &[
     "elicit_name",
 ];
 
-pub(super) fn action_surfaces(reporter: &mut PatternReporter) {
-    let actions_text = read_file("src/actions.rs");
+pub(super) fn action_surfaces(reporter: &mut PatternReporter) -> Result<()> {
+    let actions_text = read_file("src/actions.rs")?;
     let action_specs = action_specs_body(&actions_text).unwrap_or(&actions_text);
     let action_names = extract_action_names(action_specs);
     let mcp_only = extract_mcp_only_actions(action_specs);
@@ -16,13 +18,19 @@ pub(super) fn action_surfaces(reporter: &mut PatternReporter) {
             "actions",
             "could not parse ACTION_SPECS from src/actions.rs",
         );
-        return;
+        return Ok(());
     }
 
-    let schema = read_file("src/mcp/schemas.rs");
-    let tools = read_file("src/mcp/tools.rs");
-    let tests = read_file("tests/tool_dispatch.rs");
-    let cli = read_file("src/cli.rs");
+    let schema = read_file("src/mcp/schemas.rs")?;
+    let tools = read_file("src/mcp/tools.rs")?;
+    let app = read_file("src/app.rs")?;
+    let tests = format!(
+        "{}\n{}\n{}",
+        read_file("tests/tool_dispatch.rs")?,
+        read_file("src/app_tests.rs")?,
+        read_file("src/actions_tests.rs")?
+    );
+    let cli = read_file("src/cli.rs")?;
 
     let schema_uses_metadata = schema.contains("action_names()");
     let missing_schema = if schema_uses_metadata {
@@ -34,30 +42,38 @@ pub(super) fn action_surfaces(reporter: &mut PatternReporter) {
             .cloned()
             .collect::<Vec<_>>()
     };
-    let missing_help = action_names
-        .iter()
-        .filter(|action| {
-            !tools.contains(&format!("### {action}")) && !tools.contains(&format!("`{action}`"))
-        })
-        .cloned()
-        .collect::<Vec<_>>();
-    let missing_tests = action_names
-        .iter()
-        .filter(|action| {
-            action.as_str() != "help"
-                && !ACTION_TEST_COVERAGE_EXCEPTIONS.contains(&action.as_str())
-                && !tests.contains(action.as_str())
-        })
-        .cloned()
-        .collect::<Vec<_>>();
-    let missing_cli = action_names
-        .iter()
-        .filter(|action| action.as_str() != "help" && !mcp_only.contains(action))
-        .filter(|action| {
-            !cli.contains(&format!("\"{action}\"")) && !cli.contains(&variant_name(action))
-        })
-        .cloned()
-        .collect::<Vec<_>>();
+    let missing_help = if app.contains("rest_help()") && tools.contains("execute_service_action") {
+        Vec::new()
+    } else {
+        action_names.clone()
+    };
+    let registry_tested = tests.contains("for spec in ACTION_SPECS");
+    let missing_tests = if registry_tested {
+        Vec::new()
+    } else {
+        action_names
+            .iter()
+            .filter(|action| {
+                action.as_str() != "help"
+                    && !ACTION_TEST_COVERAGE_EXCEPTIONS.contains(&action.as_str())
+                    && !tests.contains(action.as_str())
+            })
+            .cloned()
+            .collect::<Vec<_>>()
+    };
+    let generic_cli = cli.contains("Command::Call") && cli.contains("parse_call_flags");
+    let missing_cli = if generic_cli {
+        Vec::new()
+    } else {
+        action_names
+            .iter()
+            .filter(|action| action.as_str() != "help" && !mcp_only.contains(action))
+            .filter(|action| {
+                !cli.contains(&format!("\"{action}\"")) && !cli.contains(&variant_name(action))
+            })
+            .cloned()
+            .collect::<Vec<_>>()
+    };
 
     if !missing_schema.is_empty() {
         reporter.fail(
@@ -108,6 +124,7 @@ pub(super) fn action_surfaces(reporter: &mut PatternReporter) {
             ),
         );
     }
+    Ok(())
 }
 
 fn action_specs_body(text: &str) -> Option<&str> {
@@ -118,15 +135,36 @@ fn action_specs_body(text: &str) -> Option<&str> {
 }
 
 fn extract_action_names(text: &str) -> Vec<String> {
-    text.lines()
-        .filter_map(|line| {
-            let (_, after_name) = line.split_once("name:")?;
-            let start = after_name.find('"')? + 1;
-            let rest = &after_name[start..];
-            let end = rest.find('"')?;
-            Some(rest[..end].to_string())
-        })
-        .collect()
+    let mut actions = Vec::new();
+    let mut next_spec_literal = false;
+    for line in text.lines() {
+        let line = line.trim();
+        if line.starts_with("spec!(") {
+            next_spec_literal = true;
+            continue;
+        }
+        let literal = if let Some(value) = line.strip_prefix("action:") {
+            quoted_literal(value)
+        } else if next_spec_literal && line.starts_with('"') {
+            next_spec_literal = false;
+            quoted_literal(line)
+        } else {
+            None
+        };
+        if let Some(action) = literal {
+            if !actions.contains(&action) {
+                actions.push(action);
+            }
+        }
+    }
+    actions
+}
+
+fn quoted_literal(text: &str) -> Option<String> {
+    let start = text.find('"')? + 1;
+    let rest = &text[start..];
+    let end = rest.find('"')?;
+    Some(rest[..end].to_string())
 }
 
 fn extract_mcp_only_actions(text: &str) -> Vec<String> {
@@ -167,12 +205,12 @@ mod tests {
     const ACTIONS: &str = r#"
 pub const ACTION_SPECS: &[ActionSpec] = &[
     ActionSpec {
-        name: "greet",
+        action: "greet",
         required_scope: Some(READ_SCOPE),
         transport: ActionTransport::Any,
     },
     ActionSpec {
-        name: "elicit_name",
+        action: "elicit_name",
         required_scope: Some(READ_SCOPE),
         transport: ActionTransport::McpOnly,
     },

@@ -21,9 +21,8 @@ plugins/rarcane/
   gemini-extension.json  # Gemini CLI extension manifest
   hooks/
     hooks.json           # Claude lifecycle hook declarations
-    plugin-setup.sh      # Thin adapter to the binary setup command
   bin/
-    rarcane             # Optional Git LFS-tracked plugin binary artifact
+    rarcane              # Plugin binary; owns setup and repair behavior
   skills/
     rarcane/
       SKILL.md           # Shared action documentation
@@ -62,10 +61,11 @@ Claude-specific lifecycle hooks live in `plugins/rarcane/hooks/hooks.json`. The 
 
 | Hook | Trigger | Command |
 | --- | --- | --- |
-| `SessionStart` | every Claude Code session start | `${CLAUDE_PLUGIN_ROOT}/hooks/plugin-setup.sh` |
-| `ConfigChange` | plugin user settings change | `${CLAUDE_PLUGIN_ROOT}/hooks/plugin-setup.sh` |
+| `SessionStart` | every Claude Code session start | `${CLAUDE_PLUGIN_ROOT}/bin/rarcane setup plugin-hook` |
+| `ConfigChange` | plugin user settings change | `${CLAUDE_PLUGIN_ROOT}/bin/rarcane setup plugin-hook` |
 
-`plugin-setup.sh` must stay a thin adapter. The standard command is:
+The hook invokes the binary directly; there is no shell adapter. The standard
+command is:
 
 ```bash
 <binary> setup plugin-hook
@@ -77,7 +77,9 @@ For rollout audits, the binary must also support:
 <binary> setup plugin-hook --no-repair
 ```
 
-The hook script may map `CLAUDE_PLUGIN_OPTION_*` values into runtime env vars, create the appdata directory, ensure the binary is available, and call the binary. It should not own Docker/systemd orchestration, config rewriting, smoke-test policy, or failure classification.
+The binary maps `CLAUDE_PLUGIN_OPTION_*` values into runtime env vars, creates
+or audits the appdata setup, and emits the hook result. The hook path must not
+own Docker/systemd orchestration or service bootstrap behavior.
 
 ## Codex
 
@@ -151,7 +153,7 @@ The validator checks:
 - manifests point to the shared `.mcp.json`, hooks, and skills paths
 - shared MCP config exposes the `rarcane` HTTP server at `${user_config.server_url}/mcp`
 - Gemini config exposes the same `rarcane` HTTP server at `${settings.server_url}/mcp`
-- hook config runs `${CLAUDE_PLUGIN_ROOT}/hooks/plugin-setup.sh`
+- hook config runs `${CLAUDE_PLUGIN_ROOT}/bin/rarcane setup plugin-hook` directly
 - every skill has `name:` and `description:` frontmatter
 
 Use `PLUGIN_ROOT=plugins/<service>` when validating an adapted service package.
@@ -182,6 +184,12 @@ Gemini carries equivalent MCP config directly in `gemini-extension.json` because
 ## Skills
 
 `plugins/rarcane/skills/rarcane/SKILL.md` is shared across Claude, Codex, and Gemini. Every skill follows the three-tier fallback pattern — agents try each tier in order and stop when one works:
+
+The shared service skill also documents the MCP-only `elicit_name` and
+`scaffold_intent` workflows. `scaffold_intent` returns a side-effect-free
+planning contract for the `scaffold-project` skill; it never grants permission
+to mutate files. Because both actions require an MCP peer, they do not have CLI
+fallback commands.
 
 ```markdown
 # rarcane — Claude Code Skill

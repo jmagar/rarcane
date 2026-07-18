@@ -14,7 +14,7 @@ const SERVICE_HOME_DIRNAME: &str = ".rarcane";
 
 /// Top-level config (maps to `config.toml` sections).
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 pub struct Config {
     pub mcp: McpConfig,
     pub rarcane: ArcaneConfig,
@@ -24,7 +24,7 @@ pub struct Config {
 ///
 /// **Template**: replace this with config for your actual upstream service.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 pub struct ArcaneConfig {
     /// Full endpoint URL of the remote service (RARCANE_API_URL).
     /// Arcane: `https://api.rarcane.com/v1`
@@ -35,7 +35,7 @@ pub struct ArcaneConfig {
 
 /// MCP HTTP server configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 pub struct McpConfig {
     /// Bind host (RARCANE_MCP_HOST). Default: `127.0.0.1` (loopback).
     /// Set to `0.0.0.0` to listen on all interfaces — requires auth configured.
@@ -89,9 +89,12 @@ impl McpConfig {
 
 /// OAuth / JWT auth sub-config.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 pub struct AuthConfig {
     pub mode: AuthMode,
+    /// Disable the static bearer token when OAuth is active. This supports
+    /// migration periods where both mechanisms coexist without forcing them.
+    pub disable_static_token_with_oauth: bool,
     pub public_url: Option<String>,
     pub google_client_id: Option<String>,
     pub google_client_secret: Option<String>,
@@ -170,6 +173,7 @@ impl Default for AuthConfig {
     fn default() -> Self {
         Self {
             mode: AuthMode::default(),
+            disable_static_token_with_oauth: false,
             public_url: None,
             google_client_id: None,
             google_client_secret: None,
@@ -228,24 +232,30 @@ pub fn default_data_dir() -> anyhow::Result<std::path::PathBuf> {
 /// its credentials directly from `~/.rarcane/.env` without a process manager.
 /// Call once at startup before `Config::load`. A symlinked `.env` is refused
 /// (the dir holds secrets; mirrors axon).
-pub fn load_dotenv() {
-    let Ok(dir) = default_data_dir() else {
-        return;
-    };
+pub fn load_dotenv() -> anyhow::Result<()> {
+    let dir = default_data_dir()?;
     let env_path = dir.join(".env");
     match std::fs::symlink_metadata(&env_path) {
         Ok(md) if md.file_type().is_symlink() => {
-            eprintln!(
-                "error: refusing to load symlinked .env at {} (potential symlink attack)",
+            anyhow::bail!(
+                "refusing to load symlinked .env at {} (potential symlink attack)",
                 env_path.display()
             );
-            std::process::exit(1);
         }
         Ok(_) => {
-            let _ = dotenvy::from_path(&env_path);
+            dotenvy::from_path(&env_path).map_err(|error| {
+                anyhow::anyhow!("failed to load {}: {error}", env_path.display())
+            })?;
         }
-        Err(_) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => {
+            return Err(anyhow::anyhow!(
+                "failed to inspect {}: {error}",
+                env_path.display()
+            ));
+        }
     }
+    Ok(())
 }
 
 // ── Config loading ────────────────────────────────────────────────────────────

@@ -3,13 +3,21 @@
 set -euo pipefail
 
 BASE="${1:-origin/main}"
-HEAD="${2:-HEAD}"
+HEAD="${2:-}"
 
 if ! git rev-parse --verify "$BASE" >/dev/null 2>&1; then
   BASE="HEAD~1"
 fi
 
-mapfile -t CHANGED < <(git diff --name-only "$BASE" "$HEAD")
+if [[ -n "${HEAD}" ]]; then
+  mapfile -t CHANGED < <(git diff --name-only "$BASE" "$HEAD")
+  RANGE_LABEL="${BASE}..${HEAD}"
+else
+  # Include committed and uncommitted changes for the local `just
+  # coupled-files-check` workflow. CI passes HEAD explicitly for a stable range.
+  mapfile -t CHANGED < <(git diff --name-only "$BASE")
+  RANGE_LABEL="${BASE}..worktree"
+fi
 
 changed() {
   local pattern="$1"
@@ -48,4 +56,4 @@ if (( ${#issues[@]} > 0 )); then
   exit 1
 fi
 
-printf 'Coupled-file check passed (%s..%s).\n' "$BASE" "$HEAD"
+printf 'Coupled-file check passed (%s).\n' "$RANGE_LABEL"

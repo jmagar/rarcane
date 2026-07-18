@@ -10,7 +10,7 @@ use std::sync::OnceLock;
 
 use serde_json::{json, Value};
 
-use crate::actions::action_names;
+use crate::actions::{action_names, ACTION_SPECS};
 
 /// Cached JSON schema definitions (static data, built once at first call).
 static TOOL_DEFINITIONS: OnceLock<Vec<Value>> = OnceLock::new();
@@ -26,7 +26,7 @@ pub(super) fn tool_definitions() -> &'static Vec<Value> {
 }
 
 fn build_tool_definitions() -> Vec<Value> {
-    vec![json!({
+    let schema = json!({
         "name": "arcane",
         "description": "Manage Arcane Docker resources. Use action=help for full documentation.",
         "inputSchema": {
@@ -56,9 +56,79 @@ fn build_tool_definitions() -> Vec<Value> {
                 }
             },
             "required": ["action"],
-            "additionalProperties": false
+            "additionalProperties": false,
+            "allOf": action_rules()
         }
-    })]
+    });
+    vec![schema]
+}
+
+fn action_rules() -> Vec<Value> {
+    let mut rules = action_names()
+        .into_iter()
+        .filter_map(|action| {
+            let specs = ACTION_SPECS
+                .iter()
+                .filter(|spec| spec.action == action)
+                .collect::<Vec<_>>();
+            let subactions = specs
+                .iter()
+                .filter_map(|spec| spec.subaction)
+                .collect::<Vec<_>>();
+            if subactions.is_empty() {
+                return None;
+            }
+            let required = vec![Value::from("subaction")];
+            let then = json!({
+                "properties": {
+                    "subaction": {"enum": subactions},
+                },
+                "required": required,
+            });
+            Some(json!({
+                "if": {"properties": {"action": {"const": action}}},
+                "then": then,
+            }))
+        })
+        .collect::<Vec<_>>();
+
+    rules.extend(ACTION_SPECS.iter().filter_map(|spec| {
+        let subaction = spec.subaction?;
+        let mut required = Vec::new();
+        if spec.requires_env {
+            required.push(Value::from("envId"));
+        }
+        let environment_id_fallback = spec.action == "environment" && spec.id_label.is_some();
+        if spec.id_label.is_some() && !environment_id_fallback {
+            required.push(Value::from("id"));
+        }
+        if !spec.required_params.is_empty() {
+            required.push(Value::from("params"));
+        }
+        let mut then = json!({"required": required});
+        if environment_id_fallback {
+            then["anyOf"] = json!([
+                {"required": ["id"]},
+                {"required": ["envId"]}
+            ]);
+        }
+        if !spec.required_params.is_empty() {
+            then["properties"] = json!({
+                "params": {"required": spec.required_params}
+            });
+        }
+        Some(json!({
+            "if": {
+                "properties": {
+                    "action": {"const": spec.action},
+                    "subaction": {"const": subaction}
+                },
+                "required": ["action", "subaction"]
+            },
+            "then": then
+        }))
+    }));
+    rules
 }
 
 #[cfg(test)]

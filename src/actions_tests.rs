@@ -22,8 +22,46 @@ fn action_metadata_covers_arcane_domains() {
         assert!(names.contains(&domain), "missing {domain}");
     }
     assert_eq!(required_scope_for_action("help"), None);
-    assert_eq!(required_scope_for_action("container"), Some(WRITE_SCOPE));
+    assert_eq!(
+        required_scope_for("container", Some("list")),
+        Some(READ_SCOPE)
+    );
+    assert_eq!(
+        required_scope_for("container", Some("delete")),
+        Some(WRITE_SCOPE)
+    );
     assert_eq!(required_scope_for_action("missing"), Some(DENY_SCOPE));
+}
+
+#[test]
+fn mcp_only_actions_are_registered_without_subactions() {
+    for action in ["elicit_name", "scaffold_intent"] {
+        let spec = spec_for(action, None).expect("MCP-only action should resolve");
+        assert_eq!(spec.transport, ActionTransport::McpOnly);
+        assert_eq!(spec.required_scope, Some(READ_SCOPE));
+    }
+}
+
+#[test]
+fn restore_requires_both_volume_and_backup_ids() {
+    let spec = spec_for("volume", Some("restore")).expect("restore spec");
+    assert_eq!(spec.required_params, &["backupId"]);
+}
+
+#[test]
+fn long_running_actions_have_extended_timeouts() {
+    assert_eq!(
+        spec_for("project", Some("build"))
+            .expect("build spec")
+            .timeout(),
+        Some(std::time::Duration::from_secs(120))
+    );
+    assert_eq!(
+        spec_for("container", Some("list"))
+            .expect("list spec")
+            .timeout(),
+        None
+    );
 }
 
 #[test]
@@ -52,6 +90,13 @@ fn missing_action_is_validation_error() {
 fn spec_lookup_rejects_unknown_subaction() {
     let error = spec_for("container", Some("logs")).unwrap_err();
     assert!(error.to_string().contains("unknown subaction"));
+}
+
+#[test]
+fn help_accepts_a_domain_as_its_optional_subaction() {
+    let spec = spec_for("help", Some("container")).expect("scoped help should resolve");
+    assert_eq!(spec.action, "help");
+    assert_eq!(spec.subaction, None);
 }
 
 #[test]

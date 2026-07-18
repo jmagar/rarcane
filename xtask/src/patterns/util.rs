@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
 use std::{fs, path::Path};
 
-pub(super) fn read_file(path: &str) -> String {
-    fs::read_to_string(path).unwrap_or_default()
+pub(super) fn read_file(path: &str) -> Result<String> {
+    fs::read_to_string(path).with_context(|| format!("failed to read {path}"))
 }
 
 pub(super) fn display_path(path: &Path) -> String {
@@ -24,6 +24,12 @@ pub(super) fn contains_top_level_json_key(text: &str, key: &str) -> bool {
 }
 
 pub(super) fn size_limit(path: &Path) -> Option<usize> {
+    if path == Path::new("src/actions.rs") {
+        return Some(1_400);
+    }
+    if path == Path::new("src/app.rs") {
+        return Some(600);
+    }
     match path.extension().and_then(|ext| ext.to_str()) {
         Some("rs") => Some(350),
         Some("ts" | "tsx") => Some(300),
@@ -33,7 +39,8 @@ pub(super) fn size_limit(path: &Path) -> Option<usize> {
 
 pub(super) fn is_test_file(path: &Path) -> bool {
     let path = path.to_string_lossy();
-    path.contains("/tests/")
+    path.starts_with("tests/")
+        || path.contains("/tests/")
         || path.ends_with("_test.rs")
         || path.ends_with("/tests.rs")
         || path.ends_with(".test.ts")

@@ -30,3 +30,7 @@
 | `Mounted` OAuth | `RARCANE_MCP_AUTH_MODE=oauth` | OAuth/JWT auth and scope checks |
 
 Use `rarcane setup check` for read-only validation and `rarcane setup repair` to create a local `.env`.
+
+OAuth mode supports one replica on one host because sessions, client
+registrations, and signing keys are local. Do not horizontally scale OAuth mode
+until those stores are externalized or safely shared.

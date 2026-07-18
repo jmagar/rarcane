@@ -24,7 +24,7 @@ use rmcp::{
 use serde_json::{Map, Value};
 
 use crate::{
-    actions::{is_known_action, required_scope_for_action, ValidationError},
+    actions::{is_known_action, spec_for, ValidationError},
     token_limit,
 };
 
@@ -75,15 +75,26 @@ impl ServerHandler for ArcaneRmcpServer {
             .and_then(|m| m.get("action"))
             .and_then(Value::as_str)
             .map(ToOwned::to_owned);
+        let subaction_opt: Option<String> = request
+            .arguments
+            .as_ref()
+            .and_then(|m| m.get("subaction"))
+            .and_then(Value::as_str)
+            .map(ToOwned::to_owned);
 
         let auth = require_auth_context(&self.state, &context)?;
         if let Some(action_str) = action_opt.as_deref() {
             reject_unknown_action_before_scope(action_str)?;
+            spec_for(action_str, subaction_opt.as_deref())
+                .map_err(|error| ErrorData::invalid_params(error.to_string(), None))?;
         }
         // Only scope-check when a known action is present; dispatch_example will
         // return the validation error for a missing action below.
         if let (Some(auth), Some(action_str)) = (auth, action_opt.as_deref()) {
-            if let Some(required_scope) = required_scope_for_action(action_str) {
+            if let Some(required_scope) = spec_for(action_str, subaction_opt.as_deref())
+                .expect("validated action spec")
+                .required_scope
+            {
                 check_scope(auth, required_scope, action_str)?;
             }
         }

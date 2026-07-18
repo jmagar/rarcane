@@ -32,7 +32,7 @@ rarcane status
 rarcane help container
 rarcane call --action container --subaction list --env-id default
 rarcane call --action container --subaction stop --env-id default --id nginx --confirm
-rarcane call --action image --subaction pull --env-id default --params '{"image":"alpine:latest"}'
+rarcane call --action image --subaction pull --env-id default --params-json '{"image":"alpine:latest"}'
 ```
 
 ## Safety and Auth

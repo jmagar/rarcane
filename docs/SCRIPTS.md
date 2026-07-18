@@ -33,7 +33,7 @@ Maintenance scripts live in `scripts/`. The authoritative per-script usage refer
 scripts/pre-release-check.sh
 scripts/pre-release-check.sh --mcporter   # include live MCP tests
 scripts/refresh-docs.sh --dry-run
-scripts/test-mcp-auth.sh --url http://localhost:40060/mcp --token <token>
+scripts/test-mcp-auth.sh --url http://localhost:40110/mcp --token <token>
 ```
 
 ## pre-release-check.sh
@@ -94,7 +94,7 @@ preflight() {
 
 One-line install:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jmagar/rarcane-mcp/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jmagar/arcane-rmcp/main/scripts/install.sh | bash
 ```
 
 After install: `rarcane doctor` to validate the environment.

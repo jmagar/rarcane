@@ -152,7 +152,10 @@ fn ci() -> Result<()> {
     println!("==> [7/7] cargo audit");
     // TEMPLATE: Remove if you don't want advisory audits in local CI.
     if command_exists("cargo-audit") {
-        run_cargo(&["audit"]).context("cargo audit found vulnerabilities")?;
+        // Keep the local audit gate aligned with the documented, reviewed
+        // exception in deny.toml. cargo-audit does not read cargo-deny policy.
+        run_cargo(&["audit", "--ignore", "RUSTSEC-2023-0071"])
+            .context("cargo audit found vulnerabilities")?;
     } else {
         eprintln!(
             "  (cargo-audit not installed — skipping; install with `cargo install cargo-audit`)"
@@ -179,11 +182,11 @@ fn check_test_siblings() -> Result<()> {
 
     let mut missing: Vec<std::path::PathBuf> = Vec::new();
 
-    for entry in WalkDir::new("src")
-        .into_iter()
-        .filter_map(|e| e.ok())
-        .filter(|e| e.file_type().is_file())
-    {
+    for entry in WalkDir::new("src") {
+        let entry = entry.context("failed to traverse src for test siblings")?;
+        if !entry.file_type().is_file() {
+            continue;
+        }
         let path = entry.path();
         let name = match path.file_name().and_then(|n| n.to_str()) {
             Some(n) => n,
@@ -204,11 +207,11 @@ fn check_test_siblings() -> Result<()> {
 
     // Reverse check: _tests.rs files with no corresponding source are orphans.
     let mut orphans: Vec<std::path::PathBuf> = Vec::new();
-    for entry in WalkDir::new("src")
-        .into_iter()
-        .filter_map(|e| e.ok())
-        .filter(|e| e.file_type().is_file())
-    {
+    for entry in WalkDir::new("src") {
+        let entry = entry.context("failed to traverse src for orphaned test siblings")?;
+        if !entry.file_type().is_file() {
+            continue;
+        }
         let path = entry.path();
         let name = match path.file_name().and_then(|n| n.to_str()) {
             Some(n) => n,
@@ -297,15 +300,12 @@ fn symlink_docs() -> Result<()> {
     let mut skipped = 0usize;
 
     // Walk the full repo, skipping .git/ and target/ (not real project dirs)
-    for entry in WalkDir::new(".")
-        .into_iter()
-        .filter_entry(|e| {
-            let name = e.file_name().to_string_lossy();
-            // Skip .git and target — they're not repo source dirs
-            !matches!(name.as_ref(), ".git" | "target")
-        })
-        .filter_map(|e| e.ok())
-    {
+    for entry in WalkDir::new(".").into_iter().filter_entry(|e| {
+        let name = e.file_name().to_string_lossy();
+        // Skip .git and target — they're not repo source dirs
+        !matches!(name.as_ref(), ".git" | "target")
+    }) {
+        let entry = entry.context("failed to traverse repository for CLAUDE.md files")?;
         if entry.file_name() != "CLAUDE.md" {
             continue;
         }

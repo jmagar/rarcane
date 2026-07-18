@@ -58,7 +58,7 @@ Every error must answer four questions:
 
 | Field | Arcane |
 |---|---|
-| What failed | `"echo: message is required"` |
+| What failed | `"container:list: envId is required"` |
 | The bad value | `"id=\"abc123\""` |
 | Why it failed | `"container may be stopped or removed"` |
 | How to fix | `"use action=help to see required parameters"` |
@@ -79,9 +79,8 @@ Never return opaque `"internal error"` messages. Never leak secrets in error tex
 Agents may use:
 
 1. **MCP tool calls** through `/mcp` or stdio (preferred — full tool schema, scope enforcement)
-2. **CLI commands** for local shell workflows (`rarcane greet --name Alice`)
-3. **REST `/v1/rarcane`** when MCP tooling is unavailable (`POST {"action":"greet","params":{"name":"Alice"}}`)
-4. **Plugin skills** as human/agent guidance
+2. **CLI commands** for local shell workflows (`rarcane call --action container --subaction list --env-id default`)
+3. **Plugin skills** as human/agent guidance
 
 The action metadata in `src/actions.rs` keeps these surfaces aligned. Every action that the MCP tool exposes must also be reachable from the CLI (with the exception of MCP-only features like elicitation).
 

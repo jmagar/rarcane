@@ -20,15 +20,15 @@ pub fn run(options: PatternOptions) -> Result<()> {
     let mut reporter = PatternReporter::default();
 
     checks::required_files(&mut reporter);
-    checks::no_mod_rs(&mut reporter);
+    checks::no_mod_rs(&mut reporter)?;
     checks::file_sizes(&mut reporter)?;
-    checks::thin_shims(&mut reporter);
+    checks::thin_shims(&mut reporter)?;
     surfaces::thin_surfaces(&mut reporter)?;
-    actions::action_surfaces(&mut reporter);
-    checks::routes(&mut reporter);
-    checks::plugins(&mut reporter);
-    checks::config_and_auth(&mut reporter);
-    checks::tooling(&mut reporter);
+    actions::action_surfaces(&mut reporter)?;
+    checks::routes(&mut reporter)?;
+    checks::plugins(&mut reporter)?;
+    checks::config_and_auth(&mut reporter)?;
+    checks::tooling(&mut reporter)?;
 
     if options.json {
         reporter.print_json();

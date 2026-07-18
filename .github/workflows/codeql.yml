@@ -42,18 +42,6 @@ jobs:
           key: ${{ github.repository }}-codeql-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ github.repository }}-codeql-
 
-      - name: Install pnpm
-        if: matrix.language == 'rust'
-        working-directory: apps/web
-        run: npm install -g "$(node -p "require('./package.json').packageManager")"
-
-      - name: Build web assets
-        if: matrix.language == 'rust'
-        working-directory: apps/web
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm build
-
       - name: Build
         if: matrix.language == 'rust'
         run: cargo build --release

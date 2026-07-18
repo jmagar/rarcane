@@ -134,6 +134,14 @@ The `AuthPolicy` enum in `src/server.rs` controls what the router does:
 
 Public endpoints (`/health`, `/status`) are never gated by auth, regardless of policy. `/status` returns only local redacted runtime metadata.
 
+## OAuth deployment topology
+
+OAuth state uses a host-local SQLite database, and signing-key material is also
+local to the deployment. Run OAuth mode as a single replica on one host. Multiple
+replicas, especially across hosts, can disagree about clients, sessions, and
+token signing keys. Horizontal OAuth scaling is unsupported until those stores
+are externalized or deliberately shared with safe locking and key rotation.
+
 ---
 
 ## TEMPLATE

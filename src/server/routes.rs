@@ -20,6 +20,7 @@ use crate::mcp::{allowed_origins, streamable_http_config, streamable_http_servic
 use crate::server::{build_auth_layer, AppState, AuthPolicy};
 
 const MCP_BODY_LIMIT_BYTES: usize = 65_536;
+const MAX_CONCURRENT_HTTP_REQUESTS: usize = 32;
 
 pub fn router(state: AppState) -> Router {
     let rmcp_config = streamable_http_config(&state.config);
@@ -37,7 +38,7 @@ pub fn router(state: AppState) -> Router {
     // Auth layer applied to /mcp.
     let auth_layer = build_auth_layer(
         &state.auth_policy,
-        state.config.api_token.as_deref().map(Arc::<str>::from),
+        static_token_for_auth(&state.config),
         resource_url,
     );
 
@@ -51,6 +52,7 @@ pub fn router(state: AppState) -> Router {
     } else {
         api_and_mcp_resolved
     };
+    let authenticated = with_mcp_concurrency_limit(authenticated, MAX_CONCURRENT_HTTP_REQUESTS);
 
     let oauth_router: Option<Router> = if let AuthPolicy::Mounted {
         auth_state: Some(ref state_arc),
@@ -92,6 +94,22 @@ pub fn router(state: AppState) -> Router {
 
     base.layer(RequestBodyLimitLayer::new(MCP_BODY_LIMIT_BYTES))
         .layer(cors_layer(&state.config))
+}
+
+fn with_mcp_concurrency_limit(router: Router, max_concurrent_requests: usize) -> Router {
+    router.layer(tower::limit::ConcurrencyLimitLayer::new(
+        max_concurrent_requests,
+    ))
+}
+
+fn static_token_for_auth(config: &crate::config::McpConfig) -> Option<Arc<str>> {
+    let oauth_disables_static_token = config.auth.mode == crate::config::AuthMode::OAuth
+        && config.auth.disable_static_token_with_oauth;
+    if oauth_disables_static_token {
+        None
+    } else {
+        config.api_token.as_deref().map(Arc::<str>::from)
+    }
 }
 
 /// `GET /health` — liveness probe (unauthenticated).

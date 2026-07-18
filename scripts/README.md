@@ -8,7 +8,6 @@ Maintenance and automation scripts for the template. Shell scripts are written f
 |---|---|
 | `asciicheck.py` | Check/fix unexpected non-ASCII characters. |
 | `block-env-commits.sh` | Prevent `.env*` secrets from being committed. |
-| `build-web.sh` | Build the Next.js web UI static export (`apps/web/out/`). |
 | `bump-version.sh` | Update version-bearing files from the `Cargo.toml` version. |
 | `check-blob-size.py` | Block unexpectedly large changed blobs. |
 | `check-coupled-files.sh` | Warn when files that normally change together drift. |
@@ -16,12 +15,11 @@ Maintenance and automation scripts for the template. Shell scripts are written f
 | `check-file-size.sh` | Pre-commit source file size budget. |
 | `check-plugin-hook-contract.py` | Audit plugin setup hook contract across Rust MCP servers. |
 | `check-runtime-current.sh` | Detect stale Docker/systemd runtimes. |
-| `check-openapi.py` | Generate/check `docs/generated/openapi.json` for the REST API surface. |
 | `check-schema-docs.py` | Generate/check `docs/MCP_SCHEMA.md` and action docs. |
 | `check-scaffold-intent-contract.py` | Validate scaffold intent schema and examples without third-party dependencies. |
 | `check-version-sync.sh` | Check version consistency. |
 | `generate-cli.sh` | Generate a standalone CLI for this server via mcporter (requires running server). |
-| `pre-release-check.sh` | Full release-readiness gate, including schema/OpenAPI/scaffold contract drift checks. |
+| `pre-release-check.sh` | Full release-readiness gate, including schema/scaffold contract drift checks. |
 | `refresh-docs.sh` | Refresh ignored reference docs with Axon/Repomix. |
 | `repair.sh` | Stop, rebuild, and restart the service via systemd or Docker Compose. |
 | `run-ascii-check.sh` | Collect tracked files and run `asciicheck.py`; pass `--fix` to rewrite in place. |
@@ -29,7 +27,6 @@ Maintenance and automation scripts for the template. Shell scripts are written f
 | `test-mcp-auth.sh` | Smoke-test HTTP MCP bearer auth. |
 | `test-template-features.sh` | Fast template invariant smoke tests. |
 | `validate-plugin-layout.sh` | Validate Claude/Codex/Gemini plugin package layout. |
-| `web-watch.sh` | Watch `apps/web` for changes and rebuild on save (requires watchexec). |
 
 `blob-size-allowlist.txt` is data for `check-blob-size.py`, not an executable script.
 
@@ -80,6 +77,10 @@ Checks changed git blobs against a size budget. Use `scripts/blob-size-allowlist
 ### `check-coupled-files.sh`
 
 ```bash
+# Local worktree, including uncommitted changes:
+scripts/check-coupled-files.sh origin/main
+
+# Stable committed range used by CI:
 scripts/check-coupled-files.sh origin/main HEAD
 just coupled-files-check
 ```
@@ -106,17 +107,6 @@ just file-size-check
 ```
 
 Checks staged `.rs`, `.ts`, and `.tsx` files for effective production lines. Test files and Rust inline `#[cfg(test)]` modules are exempted.
-
-### `check-openapi.py`
-
-```bash
-python3 scripts/check-openapi.py --write
-python3 scripts/check-openapi.py --check
-just openapi
-just openapi-check
-```
-
-Generates `docs/generated/openapi.json` for the template REST API surface: `GET /health`, `GET /status`, and `POST /v1/rarcane`. The action enum is derived from `src/actions.rs` and excludes MCP-only actions such as `scaffold_intent`.
 
 ### `check-scaffold-intent-contract.py`
 
@@ -158,15 +148,6 @@ just schema-docs-check
 
 Treats `src/actions.rs::ACTION_SPECS` as canonical and verifies schema docs, help text, README, and plugin skill mentions. Generated output lives in `docs/MCP_SCHEMA.md`.
 
-### `build-web.sh`
-
-```bash
-bash scripts/build-web.sh
-just build-web
-```
-
-Builds the Next.js web UI static export from `apps/web/`. Installs `node_modules` if absent, then runs `pnpm build`. Output lands in `apps/web/out/` and is embedded into the binary via the `web` feature. No-ops silently when `apps/web/` does not exist.
-
 ### `check-version-sync.sh`
 
 ```bash
@@ -183,7 +164,7 @@ RARCANE_MCP_TOKEN=... bash scripts/generate-cli.sh
 just generate-cli
 ```
 
-Generates a standalone CLI binary for this server via `mcporter generate-cli`. Requires a running server on port 40060 and `mcporter` in PATH. Caches a schema hash under `dist/.cache/` and skips regeneration when the tool schema is unchanged. The generated binary embeds the token — do not commit or share it.
+Generates a standalone CLI binary for this server via `mcporter generate-cli`. Requires a running server on port 40110 and `mcporter` in PATH. Caches a schema hash under `dist/.cache/` and skips regeneration when the tool schema is unchanged. The generated binary embeds the token — do not commit or share it.
 
 **TEMPLATE:** Update the port and token env var name in this script when adapting.
 
@@ -275,15 +256,6 @@ just template-features
 ```
 
 Fast shell smoke tests for invariants that are awkward as Rust tests: `.env` blocking, agent docs symlinks, plugin layout, schema docs, and ASCII hygiene.
-
-### `web-watch.sh`
-
-```bash
-bash scripts/web-watch.sh
-just web-watch
-```
-
-Watches `apps/web/` for changes and rebuilds on save using `watchexec`. Ignores `.next/`, `out/`, and `node_modules/`. Requires `watchexec`: `cargo install watchexec-cli`.
 
 ### `validate-plugin-layout.sh`
 

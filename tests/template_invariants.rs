@@ -70,6 +70,45 @@ fn justfile_exposes_ported_automation_recipes() {
 }
 
 #[test]
+fn production_deployment_is_authenticated_and_uses_the_published_image() {
+    let compose = read("docker-compose.prod.yml");
+    let docker_workflow = read(".github/workflows/docker-publish.yml");
+    let dockerfile = read("config/Dockerfile");
+    let env_example = read(".env.example");
+
+    assert!(
+        compose.contains("ghcr.io/jmagar/arcane-rmcp:${RARCANE_MCP_VERSION:-latest}"),
+        "production compose must consume the image published by CI"
+    );
+    assert!(
+        docker_workflow.contains("IMAGE_NAME: ghcr.io/jmagar/arcane-rmcp"),
+        "Docker workflow and production compose image names must match"
+    );
+    assert!(
+        compose.contains("RARCANE_MCP_NO_AUTH: \"${RARCANE_MCP_NO_AUTH:-false}\""),
+        "production compose must keep authentication enabled by default"
+    );
+    assert!(
+        compose.contains("RARCANE_MCP_TOKEN: \"${RARCANE_MCP_TOKEN:?"),
+        "production compose must require a bearer token"
+    );
+    assert!(!compose.contains("RARCANE_NOAUTH: \"true\""));
+    assert!(env_example.contains("RARCANE_MCP_VERSION=v0.4.0"));
+    let base_images: Vec<_> = dockerfile
+        .lines()
+        .filter(|line| line.starts_with("FROM "))
+        .collect();
+    assert_eq!(
+        base_images.len(),
+        base_images
+            .iter()
+            .filter(|line| line.contains("@sha256:"))
+            .count(),
+        "every Docker base image must be pinned by digest"
+    );
+}
+
+#[test]
 fn plugin_manifests_do_not_have_version_fields() {
     for path in [
         "plugins/rarcane/.claude-plugin/plugin.json",

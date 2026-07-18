@@ -131,7 +131,7 @@ The mcporter harness validates tools and resources against a running server. It 
 
 The test script validates:
 - auth rejection when `RARCANE_MCP_TOKEN` is set
-- tool semantic behavior for `greet`, `echo`, `status`, and `help`
+- tool semantic behavior for `status`, `help`, Arcane domains, and MCP-only elicitation workflows
 - MCP resource behavior for `rarcane://schema/mcp-tool`
 
 Use semantic assertions, not liveness-only checks:

@@ -15,7 +15,7 @@ pub(super) fn list_prompts() -> ListPromptsResult {
         prompts: vec![Prompt::new(
             "quick_start",
             Some(
-                "Check the server status and get a personalised greeting to verify \
+                "Check server status and retrieve the public action reference to verify \
                  the MCP connection is working end-to-end.",
             ),
             None,
@@ -29,10 +29,10 @@ pub(super) fn get_prompt(request: GetPromptRequestParams) -> anyhow::Result<GetP
         "quick_start" => Ok(GetPromptResult::new(vec![PromptMessage::new_text(
             PromptMessageRole::User,
             "Use the rarcane tool with action=status to check the server is running, \
-             then use action=greet with your name to get a personalised greeting. \
-             Report back both results.",
+             then use action=help to retrieve the public action reference. \
+             Report back both results. Resource list operations require an envId.",
         )])
-        .with_description("Verify the MCP server is working with a status check and greeting")),
+        .with_description("Verify the MCP server with status and public help")),
         other => Err(anyhow::anyhow!("unknown prompt: {other}")),
     }
 }

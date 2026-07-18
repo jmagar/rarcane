@@ -61,7 +61,7 @@ pub(super) fn thin_surfaces(reporter: &mut PatternReporter) -> Result<()> {
     let mut warnings = Vec::new();
 
     for file in &files {
-        let text = read_file(&file.path);
+        let text = read_file(&file.path)?;
         match file.kind {
             SurfaceKind::CoreRust => {
                 let text = strip_inline_test_module(&text);
@@ -76,7 +76,7 @@ pub(super) fn thin_surfaces(reporter: &mut PatternReporter) -> Result<()> {
         reporter.fail(
             "surfaces",
             format!(
-                "business/IO logic appears in surface files: {}. Hint: CLI/API/MCP/web surfaces should parse inputs, delegate to ArcaneService or API endpoints, and format responses only.",
+                "business/IO logic appears in surface files: {}. Hint: protocol and CLI surfaces should parse inputs, delegate to ArcaneService, and format responses only.",
                 failures.join("; ")
             ),
         );
@@ -93,7 +93,7 @@ pub(super) fn thin_surfaces(reporter: &mut PatternReporter) -> Result<()> {
     if failures.is_empty() && warnings.is_empty() {
         reporter.ok(
             "surfaces",
-            format!("{} CLI/API/MCP/web surface files look thin", files.len()),
+            format!("{} protocol/CLI surface files look thin", files.len()),
         );
     }
     Ok(())

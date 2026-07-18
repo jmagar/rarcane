@@ -21,19 +21,21 @@ python3 scripts/check-schema-docs.py --check
 
 | Action | Scope | Description |
 |---|---|---|
-| `help` | public | Return the in-tool Arcane action reference. |
-| `status` | `rarcane:read` | Return local rarcane status and Arcane configuration metadata. |
-| `environment` | `rarcane:read` / `rarcane:write` | List, inspect, test, create, update, and delete Arcane remote environments. |
+| `help` | public | Return the in-tool action reference. Public; no scope required. |
+| `status` | `rarcane:read` | Return local server status without contacting Arcane. |
+| `elicit_name` | `rarcane:read` | Ask the MCP client for a name and return a greeting. |
+| `scaffold_intent` | `rarcane:read` | Collect scaffold requirements and return a side-effect-free handoff contract. |
+| `environment` | `rarcane:read` / `rarcane:write` | List, inspect, test, create, update, and delete Arcane environments. |
 | `project` | `rarcane:read` / `rarcane:write` | List, inspect, deploy, build, and manage Arcane projects. |
 | `container` | `rarcane:read` / `rarcane:write` | List, inspect, start, stop, restart, update, and remove containers. |
-| `image` | `rarcane:read` / `rarcane:write` | List, inspect, pull, prune, scan, and remove container images. |
-| `network` | `rarcane:read` / `rarcane:write` | List, inspect, create, prune, and remove Docker networks. |
-| `volume` | `rarcane:read` / `rarcane:write` | List, inspect, browse, back up, restore, create, prune, and remove Docker volumes. |
-| `system` | `rarcane:read` / `rarcane:write` | Retrieve Arcane system information and run supported system operations. |
+| `image` | `rarcane:read` / `rarcane:write` | List, inspect, pull, prune, scan, and remove images. |
+| `network` | `rarcane:read` / `rarcane:write` | List, inspect, create, prune, and remove networks. |
+| `volume` | `rarcane:read` / `rarcane:write` | List, inspect, browse, back up, restore, create, prune, and remove volumes. |
+| `system` | `rarcane:read` / `rarcane:write` | Retrieve system information and run supported system operations. |
 | `image-update` | `rarcane:read` | Check image update status and summaries. |
 | `vulnerability` | `rarcane:read` / `rarcane:write` | Inspect, ignore, and unignore vulnerability findings. |
-| `registry` | `rarcane:read` / `rarcane:write` | List, inspect, test, create, update, and delete registry connections. |
-| `gitops` | `rarcane:read` / `rarcane:write` | List, inspect, browse, sync, create, update, and delete GitOps syncs. |
+| `registry` | `rarcane:read` / `rarcane:write` | List, inspect, test, create, update, and delete registries. |
+| `gitops` | `rarcane:read` / `rarcane:write` | List, inspect, browse, sync, create, update, and delete GitOps entries. |
 
 ## Drift Rules
 
@@ -55,12 +57,10 @@ python3 scripts/check-schema-docs.py --check
 
 | Prompt | Source | Contract |
 |---|---|---|
-| `quick_start` | `src/mcp/prompts.rs` | Guides a client to call `status` and `projects:list`. |
+| `quick_start` | `src/mcp/prompts.rs` | Guides a client to call `status` and public `help`. |
 
 ## Input Validation
 
 - `action` is always required.
-- Arcane domain actions require valid `subaction` values.
-- Environment-scoped actions require `envId`.
-- Destructive operations require explicit confirmation.
+- `elicit_name` and `scaffold_intent` collect their extra fields through MCP elicitation, not direct tool-call arguments.
 - Unknown top-level parameters are rejected by the schema.

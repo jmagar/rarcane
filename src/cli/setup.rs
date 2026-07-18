@@ -7,6 +7,7 @@
 
 use std::net::TcpListener;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::{
     config::{default_data_dir, AuthMode, Config},
@@ -23,7 +24,9 @@ pub enum SetupCommand {
     /// Copy this binary into ~/.local/bin so it is callable as a bare command
     /// in the user's own terminal, independent of Claude Code.
     Install,
-    PluginHook { no_repair: bool },
+    PluginHook {
+        no_repair: bool,
+    },
 }
 
 /// Translate Claude Code plugin options (`CLAUDE_PLUGIN_OPTION_*`) into the
@@ -248,9 +251,6 @@ fn setup_check(config: &Config, no_repair: bool) -> SetupReport {
 }
 
 fn setup_repair(config: &Config) -> Result<SetupReport> {
-    // L8: Two concurrent `setup repair` invocations can clobber each other's
-    // .env.tmp → .env rename. For a plugin hook triggered by a single Claude
-    // session this is benign, but a proper fix would use flock(2) on the data dir.
     let data_dir = setup_data_dir()?;
     std::fs::create_dir_all(&data_dir)?;
     write_env(&data_dir, config)?;
@@ -318,8 +318,7 @@ fn check_auth(config: &Config, report: &mut SetupReport) {
     } else if config.mcp.api_token.as_deref().unwrap_or("").is_empty() {
         report.blocking_failures.push(SetupFailure {
             code: "missing_mcp_token",
-            message: "RARCANE_MCP_TOKEN is required unless no_auth or OAuth mode is enabled"
-                .into(),
+            message: "RARCANE_MCP_TOKEN is required unless no_auth or OAuth mode is enabled".into(),
         });
     }
 }
@@ -380,7 +379,7 @@ fn write_env(data_dir: &Path, config: &Config) -> Result<()> {
     }
 
     let env_path = data_dir.join(".env");
-    let temp_path = data_dir.join(".env.tmp");
+    let temp_path = unique_env_temp_path(data_dir);
     #[cfg(unix)]
     {
         use std::io::Write;
@@ -388,8 +387,7 @@ fn write_env(data_dir: &Path, config: &Config) -> Result<()> {
 
         // mode(0o600) sets permissions atomically at creation — no second chmod needed.
         let mut file = std::fs::OpenOptions::new()
-            .create(true)
-            .truncate(true)
+            .create_new(true)
             .write(true)
             .mode(0o600)
             .open(&temp_path)?;
@@ -404,6 +402,12 @@ fn write_env(data_dir: &Path, config: &Config) -> Result<()> {
         let _ = std::fs::remove_file(&temp_path);
     })?;
     Ok(())
+}
+
+fn unique_env_temp_path(data_dir: &Path) -> PathBuf {
+    static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(0);
+    let sequence = NEXT_TEMP_ID.fetch_add(1, Ordering::Relaxed);
+    data_dir.join(format!(".env.tmp.{}.{}", std::process::id(), sequence))
 }
 
 fn dotenv_assignment(key: &'static str, value: &str) -> Result<String> {

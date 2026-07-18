@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::{fs, path::Path};
 use walkdir::WalkDir;
 
@@ -11,7 +11,7 @@ use super::{
 };
 
 const REQUIRED_PATTERN_FILES: &[&str] = &[
-    "src/rarcane.rs",
+    "src/arcane.rs",
     "src/app.rs",
     "src/actions.rs",
     "src/mcp.rs",
@@ -25,7 +25,7 @@ const REQUIRED_PATTERN_FILES: &[&str] = &[
     "src/main.rs",
     "src/lib.rs",
     "tests/tool_dispatch.rs",
-    "config.rarcane.toml",
+    "config.example.toml",
     "taplo.toml",
     "lefthook.yml",
     "install.sh",
@@ -64,14 +64,17 @@ pub(super) fn required_files(reporter: &mut PatternReporter) {
     }
 }
 
-pub(super) fn no_mod_rs(reporter: &mut PatternReporter) {
-    let mod_files = WalkDir::new(".")
+pub(super) fn no_mod_rs(reporter: &mut PatternReporter) -> Result<()> {
+    let entries = WalkDir::new(".")
         .into_iter()
         .filter_entry(|entry| {
             let name = entry.file_name().to_string_lossy();
             !matches!(name.as_ref(), ".git" | "target")
         })
-        .filter_map(|entry| entry.ok())
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .context("failed to traverse repository while checking mod.rs files")?;
+    let mod_files = entries
+        .into_iter()
         .filter(|entry| entry.file_type().is_file() && entry.file_name() == "mod.rs")
         .map(|entry| display_path(entry.path()))
         .collect::<Vec<_>>();
@@ -84,6 +87,7 @@ pub(super) fn no_mod_rs(reporter: &mut PatternReporter) {
             format!("mod.rs files are prohibited: {}", mod_files.join(", ")),
         );
     }
+    Ok(())
 }
 
 pub(super) fn file_sizes(reporter: &mut PatternReporter) -> Result<()> {
@@ -141,7 +145,7 @@ pub(super) fn file_sizes(reporter: &mut PatternReporter) -> Result<()> {
     Ok(())
 }
 
-pub(super) fn thin_shims(reporter: &mut PatternReporter) {
+pub(super) fn thin_shims(reporter: &mut PatternReporter) -> Result<()> {
     let policies = [
         (
             "src/mcp/tools.rs",
@@ -156,7 +160,7 @@ pub(super) fn thin_shims(reporter: &mut PatternReporter) {
     ];
 
     for (path, required, forbidden) in policies {
-        let text = read_file(path);
+        let text = read_file(path)?;
         let missing = required
             .iter()
             .copied()
@@ -190,10 +194,11 @@ pub(super) fn thin_shims(reporter: &mut PatternReporter) {
             reporter.ok("thin-shim", format!("{path} looks like a delegation shim"));
         }
     }
+    Ok(())
 }
 
-pub(super) fn routes(reporter: &mut PatternReporter) {
-    let routes = read_file("src/server/routes.rs");
+pub(super) fn routes(reporter: &mut PatternReporter) -> Result<()> {
+    let routes = read_file("src/server/routes.rs")?;
     let missing = ["\"/mcp\"", "\"/health\"", "\"/status\""]
         .iter()
         .copied()
@@ -208,27 +213,35 @@ pub(super) fn routes(reporter: &mut PatternReporter) {
             format!("missing expected HTTP route(s): {}", missing.join(", ")),
         );
     }
+    Ok(())
 }
 
-pub(super) fn plugins(reporter: &mut PatternReporter) {
-    let manifests = WalkDir::new("plugins")
+pub(super) fn plugins(reporter: &mut PatternReporter) -> Result<()> {
+    let entries = WalkDir::new("plugins")
         .into_iter()
-        .filter_map(|entry| entry.ok())
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .context("failed to traverse plugins directory")?;
+    let manifests = entries
+        .into_iter()
         .filter(|entry| entry.file_type().is_file() && entry.file_name() == "plugin.json")
         .map(|entry| entry.into_path())
         .collect::<Vec<_>>();
 
     let failures = manifests
         .iter()
-        .filter_map(|manifest| {
-            let text = fs::read_to_string(manifest).ok()?;
-            contains_top_level_json_key(&text, "version").then(|| {
+        .map(|manifest| {
+            let text = fs::read_to_string(manifest)
+                .with_context(|| format!("failed to read {}", manifest.display()))?;
+            Ok(contains_top_level_json_key(&text, "version").then(|| {
                 format!(
                     "{} contains forbidden version field",
                     display_path(manifest)
                 )
-            })
+            }))
         })
+        .collect::<Result<Vec<_>>>()?
+        .into_iter()
+        .flatten()
         .collect::<Vec<_>>();
 
     if failures.is_empty() {
@@ -242,7 +255,7 @@ pub(super) fn plugins(reporter: &mut PatternReporter) {
 
     let hook_path = Path::new("plugins/rarcane/hooks/hooks.json");
     if hook_path.exists() {
-        let hook = read_file("plugins/rarcane/hooks/hooks.json");
+        let hook = read_file("plugins/rarcane/hooks/hooks.json")?;
         // The hook must call the binary directly (no plugin-setup.sh wrapper).
         if hook.contains("plugin-setup.sh") {
             reporter.fail(
@@ -261,18 +274,19 @@ pub(super) fn plugins(reporter: &mut PatternReporter) {
             );
         }
     }
+    Ok(())
 }
 
-pub(super) fn config_and_auth(reporter: &mut PatternReporter) {
-    let gitignore = read_file(".gitignore");
+pub(super) fn config_and_auth(reporter: &mut PatternReporter) -> Result<()> {
+    let gitignore = read_file(".gitignore")?;
     if gitignore.contains(".env") {
         reporter.ok("config", ".env is ignored");
     } else {
         reporter.fail("config", ".gitignore should ignore .env secrets");
     }
 
-    let server = read_file("src/server.rs");
-    let config = read_file("src/config.rs");
+    let server = read_file("src/server.rs")?;
+    let config = read_file("src/config.rs")?;
     if !server.contains("LoopbackDev") || !server.contains("Mounted") {
         reporter.fail(
             "auth",
@@ -286,11 +300,12 @@ pub(super) fn config_and_auth(reporter: &mut PatternReporter) {
     } else {
         reporter.ok("auth", "auth policy states and config toggles are present");
     }
+    Ok(())
 }
 
-pub(super) fn tooling(reporter: &mut PatternReporter) {
-    let lefthook = read_file("lefthook.yml");
-    let taplo = read_file("taplo.toml");
+pub(super) fn tooling(reporter: &mut PatternReporter) -> Result<()> {
+    let lefthook = read_file("lefthook.yml")?;
+    let taplo = read_file("taplo.toml")?;
     let mut missing = Vec::new();
 
     // Check that the scripts CI relies on for enforcement actually exist.
@@ -298,7 +313,6 @@ pub(super) fn tooling(reporter: &mut PatternReporter) {
     // the Justfile is restructured, and fails when a script is accidentally deleted.
     for script in [
         "scripts/check-schema-docs.py",
-        "scripts/check-openapi.py",
         "scripts/check-scaffold-intent-contract.py",
         "scripts/validate-plugin-layout.sh",
         "scripts/test-template-features.sh",
@@ -329,4 +343,5 @@ pub(super) fn tooling(reporter: &mut PatternReporter) {
             ),
         );
     }
+    Ok(())
 }

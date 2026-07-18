@@ -12,7 +12,8 @@ use serde_json::{json, Value};
 
 use crate::{
     actions::{
-        rest_help, spec_for, validate_relative_path, ArcaneAction, BodyMode, ValidationError,
+        rest_help, spec_for, validate_relative_path, ActionSpec, ActionTransport, ArcaneAction,
+        BodyMode, ValidationError,
     },
     arcane::{encode_path_segment, ArcaneClient},
 };
@@ -88,11 +89,7 @@ impl ArcaneService {
 
     /// Return local server status without leaking Arcane topology or credentials.
     pub async fn status(&self) -> Result<Value> {
-        Ok(json!({
-            "status": "ok",
-            "server": "rarcane",
-            "upstream": "arcane",
-        }))
+        Ok(local_status())
     }
 
     pub async fn dispatch(&self, action: &ArcaneAction) -> Result<Value> {
@@ -102,7 +99,7 @@ impl ArcaneService {
         if action.action == "status" {
             return self.status().await;
         }
-        let spec = spec_for(&action.action, action.subaction.as_deref())?;
+        let spec = validate_service_action(&action.action, action.subaction.as_deref())?;
         validate_request(spec, action)?;
         let path = build_path(spec.path, action)?;
         let query = query_params(spec, action)?;
@@ -206,6 +203,22 @@ impl ArcaneService {
     }
 }
 
+/// Resolve an action that may be dispatched through the generic service/CLI path.
+/// MCP-only actions are handled separately by the peer-aware MCP adapter.
+pub fn validate_service_action(
+    action: &str,
+    subaction: Option<&str>,
+) -> Result<&'static ActionSpec> {
+    let spec = spec_for(action, subaction)?;
+    if spec.transport == ActionTransport::McpOnly {
+        return Err(ValidationError::McpOnlyAction {
+            action: action.to_owned(),
+        }
+        .into());
+    }
+    Ok(spec)
+}
+
 fn validate_request(spec: &crate::actions::ActionSpec, action: &ArcaneAction) -> Result<()> {
     if spec.requires_env && action.env_id.as_deref().unwrap_or_default().is_empty() {
         return Err(ValidationError::MissingEnvId {
@@ -215,20 +228,7 @@ fn validate_request(spec: &crate::actions::ActionSpec, action: &ArcaneAction) ->
         .into());
     }
     if let Some(label) = spec.id_label {
-        if label == "backupId" {
-            let Some(value) = action.params.get("backupId").and_then(Value::as_str) else {
-                return Err(ValidationError::MissingId {
-                    label: "backupId".into(),
-                }
-                .into());
-            };
-            if value.is_empty() {
-                return Err(ValidationError::MissingId {
-                    label: "backupId".into(),
-                }
-                .into());
-            }
-        } else if action.id.as_deref().unwrap_or_default().is_empty() {
+        if action.id.as_deref().unwrap_or_default().is_empty() {
             if spec.action == "environment" {
                 // Preserve TypeScript prior art: environment single-resource ops accept envId fallback.
                 if action.env_id.as_deref().unwrap_or_default().is_empty() {
@@ -243,6 +243,19 @@ fn validate_request(spec: &crate::actions::ActionSpec, action: &ArcaneAction) ->
                 }
                 .into());
             }
+        }
+    }
+    for field in spec.required_params {
+        let present = action
+            .params
+            .get(*field)
+            .and_then(Value::as_str)
+            .is_some_and(|value| !value.is_empty());
+        if !present {
+            return Err(ValidationError::MissingId {
+                label: (*field).into(),
+            }
+            .into());
         }
     }
     if matches!(
@@ -311,12 +324,50 @@ fn query_params(spec: &crate::actions::ActionSpec, action: &ArcaneAction) -> Res
         return Ok(None);
     }
     let mut query = serde_json::Map::new();
+    if is_paginated(spec) {
+        query.insert(
+            "offset".into(),
+            Value::from(pagination_value(&action.params, "offset", 0, u64::MAX)?),
+        );
+        query.insert(
+            "limit".into(),
+            Value::from(pagination_value(&action.params, "limit", 50, 200)?),
+        );
+    }
     for key in ["offset", "limit", "sort_order", "query", "path", "imageRef"] {
+        if matches!(key, "offset" | "limit") && is_paginated(spec) {
+            continue;
+        }
         if let Some(value) = action.params.get(key) {
             query.insert(key.to_string(), value.clone());
         }
     }
     Ok((!query.is_empty()).then_some(Value::Object(query)))
+}
+
+fn is_paginated(spec: &crate::actions::ActionSpec) -> bool {
+    matches!(
+        spec.subaction,
+        Some("list" | "browse" | "list-backups" | "list-ignored")
+    )
+}
+
+fn pagination_value(params: &Value, field: &str, default: u64, max: u64) -> Result<u64> {
+    let Some(value) = params.get(field) else {
+        return Ok(default);
+    };
+    let value = value.as_u64().ok_or_else(|| ValidationError::WrongType {
+        field: field.into(),
+    })?;
+    if value > max {
+        return Err(ValidationError::OutOfRange {
+            field: field.into(),
+            min: 0,
+            max,
+        }
+        .into());
+    }
+    Ok(value)
 }
 
 fn body_params(mode: BodyMode, params: &Value) -> Option<Value> {
@@ -354,9 +405,14 @@ fn help_value(domain: Option<&str>) -> Value {
         .iter()
         .filter(|spec| domain.is_none_or(|domain| spec.action == domain))
         .map(|spec| {
+            let transport = match spec.transport {
+                ActionTransport::Any => "any",
+                ActionTransport::McpOnly => "mcp-only",
+            };
             json!({
                 "action": spec.action,
                 "subaction": spec.subaction,
+                "transport": transport,
                 "scope": spec.required_scope,
                 "destructive": spec.destructive,
                 "requiresEnvId": spec.requires_env,
@@ -370,6 +426,18 @@ fn help_value(domain: Option<&str>) -> Value {
         "summary": rest_help(),
         "actions": actions,
     })
+}
+
+pub fn local_status() -> Value {
+    json!({
+        "status": "ok",
+        "server": "rarcane",
+        "upstream": "arcane",
+    })
+}
+
+pub fn local_help(domain: Option<&str>) -> Value {
+    help_value(domain)
 }
 
 fn validate_scaffold_intent(input: &ScaffoldIntent) -> Result<()> {
