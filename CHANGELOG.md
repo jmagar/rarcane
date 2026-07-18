@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
                Format: ## [X.Y.Z] — YYYY-MM-DD
                Use Added / Changed / Deprecated / Removed / Fixed / Security headers. -->
 
+## [0.4.4](https://github.com/jmagar/arcane-rmcp/compare/v0.4.3...v0.4.4) (2026-07-18)
+
+
+### Fixed
+
+* **release:** install LLVM archive tooling and NASM for Windows artifacts ([16d5873](https://github.com/jmagar/arcane-rmcp/commit/16d58738cc2db3137de2303bfbdebe6f85fc6e6d))
+* **release:** use the draft-owner token for asset staging and finalization ([e07a3a2](https://github.com/jmagar/arcane-rmcp/commit/e07a3a2d54e001ee7470cdef5ffb3e399d63ba64))
+
 ## [0.4.3](https://github.com/jmagar/arcane-rmcp/compare/v0.4.2...v0.4.3) (2026-07-18)
 
 ### Fixed
