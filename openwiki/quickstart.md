@@ -23,7 +23,7 @@ Use this page as the start point whenever you need to understand:
 
 ## What changed recently
 
-The current workflow connects to the private OpenAI-compatible API over Tailscale, verifies its `/models` endpoint, and runs `openwiki --update --print` with the `gpt-5.3-codex-spark` model. Generated pull requests include only the `openwiki` directory.
+The current workflow runs `openwiki code --update --print` using the OpenRouter provider (`OPENWIKI_PROVIDER=openrouter`) with model `z-ai/glm-5.2`. Pull requests include `openwiki/`, `AGENTS.md`, `CLAUDE.md`, and `.github/workflows/openwiki-update.yml` from the workflow update step.
 
 ## Practical workflow for maintainers
 
